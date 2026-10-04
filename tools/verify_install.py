@@ -47,7 +47,8 @@ def main() -> None:
         "usr/share/fcitx5/inputmethod/phono.conf",
         "usr/share/licenses/phono-fcitx5-addon/LICENSE",
         "usr/share/doc/phono-fcitx5-addon/README.md",
-        "usr/share/doc/phono-fcitx5-addon/docs/ci.md",
+        "usr/share/doc/phono-fcitx5-addon/docs/zh-cn/ci.md",
+        "usr/share/doc/phono-fcitx5-addon/docs/en-us/ci.md",
     ):
         require((root / relative).is_file(), f"Missing required package file: {relative}")
     addon_metadata = metadata(root / "usr/share/fcitx5/addon/phono.conf", "Addon")
