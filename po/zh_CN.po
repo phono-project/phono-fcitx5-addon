@@ -1,0 +1,128 @@
+# Phono Fcitx5 addon translations.
+# Copyright (C) 2026 Phono contributors
+# This file is distributed under the same license as the phono-fcitx5-addon package.
+msgid ""
+msgstr ""
+"Project-Id-Version: phono-fcitx5-addon 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-04 00:00+0800\n"
+"PO-Revision-Date: 2026-10-04 00:00+0800\n"
+"Last-Translator: Phono contributors\n"
+"Language-Team: zh_CN\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Enable Phono model"
+msgstr "启用 Phono 模型"
+
+msgid "Model package directory"
+msgstr "模型包目录"
+
+msgid "Candidates per page"
+msgstr "每页候选数"
+
+msgid "Context cache slots"
+msgstr "上下文缓存槽位"
+
+msgid "Use surrounding text from applications"
+msgstr "使用应用提供的上文"
+
+msgid "Maximum surrounding text characters"
+msgstr "最多读取上文字符数"
+
+msgid "Normalize ASCII case"
+msgstr "规范化 ASCII 大小写"
+
+msgid "Normalize v after j/q/x/y"
+msgstr "规范化 j/q/x/y 后的 v"
+
+msgid "Explicit syllable separators"
+msgstr "强制音节分隔字符"
+
+msgid "Strict syllable segmentation"
+msgstr "严格分词"
+
+msgid "Repair invalid characters in safe mode"
+msgstr "安全模式修复非法字符"
+
+msgid "Maximum pinyin characters"
+msgstr "最大拼音字符数"
+
+msgid "Context length (0: automatic)"
+msgstr "上下文长度（0 自动）"
+
+msgid "History length (0: automatic)"
+msgstr "历史长度（0 自动）"
+
+msgid "Pinyin syllables (0: automatic)"
+msgstr "拼音音节数（0 自动）"
+
+msgid "History window recycling interval (-1: automatic)"
+msgstr "历史窗口回收间隔（-1 自动）"
+
+msgid "Minimum context length to reuse"
+msgstr "复用上下文最短长度"
+
+msgid "Context trial ratio (0 < x <= 1)"
+msgstr "上下文试探比例（0 < x ≤ 1）"
+
+msgid "Cache decay factor (decimal)"
+msgstr "缓存衰减系数（小数）"
+
+msgid "Cache time decay factor (decimal)"
+msgstr "缓存时间衰减系数（小数）"
+
+msgid "Learn from dictionary selections"
+msgstr "学习词典拆词结果"
+
+msgid "Dictionary segmentation"
+msgstr "拆词"
+
+msgid "Set the model package directory in Phono settings"
+msgstr "请在 Phono 配置中设置模型包目录"
+
+msgid "Phono inference failed; using dictionary candidates (see log for details)"
+msgstr "Phono 推理失败，使用词典候选（详情见日志）"
+
+msgid "Phono - Pinyin Input"
+msgstr "Phono - 拼音输入"
+
+msgid "Phono - Shuangpin Input"
+msgstr "Phono - 双拼输入"
+
+
+msgid "Invalid input"
+msgstr "非法输入"
+
+msgid "Pass through"
+msgstr "直通"
+
+msgid "Delete (show struck-out text)"
+msgstr "删除（以删除线标出）"
+
+msgid "Shuangpin scheme"
+msgstr "双拼方案"
+
+msgid "Natural Code"
+msgstr "自然码"
+
+msgid "Microsoft"
+msgstr "微软"
+
+msgid "Purple Light"
+msgstr "紫光"
+
+msgid "Smart ABC"
+msgstr "智能 ABC"
+
+msgid "Chinese Star"
+msgstr "中文之星"
+
+msgid "Pinyin Jiajia"
+msgstr "拼音加加"
+
+msgid "Xiaohe"
+msgstr "小鹤"

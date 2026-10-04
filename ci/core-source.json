@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/phono-project/phono-core.git",
+  "revision": "adc976ce363ea3faaee198c722349eab1d37805f",
+  "patch": "phono-core-use-segmenter.patch",
+  "patch_sha256": "2fd221a639f8bbb15fae8caada9a9167f0f4e2d572d9c76c4a2e26d1c62711f4"
+}

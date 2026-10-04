@@ -1,0 +1,47 @@
+diff --git a/src/core/config.cpp b/src/core/config.cpp
+index 00bfa2e..ade4f0b 100644
+--- a/src/core/config.cpp
++++ b/src/core/config.cpp
+@@ -90,6 +90,8 @@ EngineConfigError parse_engine_config(const json& input, EngineConfig& out) {
+             "normalize_v_to_u", candidate.tokenizer.normalization.normalize_v_to_u);
+         candidate.tokenizer.normalization.separators = normalization.value(
+             "separators", candidate.tokenizer.normalization.separators);
++        candidate.tokenizer.use_segmenter = tokenizer.value(
++            "use_segmenter", candidate.tokenizer.use_segmenter);
+         candidate.tokenizer.repair = tokenizer.value("repair", candidate.tokenizer.repair);
+         candidate.tokenizer.max_pinyin_chars = tokenizer.value(
+             "max_pinyin_chars", candidate.tokenizer.max_pinyin_chars);
+diff --git a/src/core/config.hpp b/src/core/config.hpp
+index 78de78a..d8672f4 100644
+--- a/src/core/config.hpp
++++ b/src/core/config.hpp
+@@ -58,6 +58,9 @@ const char* engine_config_error_name(EngineConfigError error);
+ 
+ struct TokenizerEngineConfig {
+     PinyinNormalizationConfig normalization;
++    // Explicit-syllable frontends (for example shuangpin) can feed exact token
++    // IDs without loading the optional neural gap scorer.
++    bool use_segmenter = true;
+     SegmentMode segment_mode = SegmentMode::Safe;
+     bool repair = false;
+     int32_t max_pinyin_chars = 128;
+diff --git a/src/engine/inference_engine.cpp b/src/engine/inference_engine.cpp
+index c276a84..a5c92ac 100644
+--- a/src/engine/inference_engine.cpp
++++ b/src/engine/inference_engine.cpp
+@@ -192,13 +192,13 @@ InferenceEngine::InferenceEngine(const std::string& package_root,
+                                  runtime_error_message(err) + ")");
+     }
+ 
+-    if (config_.segmenter) {
++    if (engine_config_.tokenizer.use_segmenter && config_.segmenter) {
+         if (engine_config_.tokenizer.max_pinyin_chars > config_.segmenter->max_input_chars) {
+             throw std::invalid_argument(
+                 "InferenceEngine: tokenizer.max_pinyin_chars exceeds segmenter hard limit");
+         }
+         segmenter_ = std::make_unique<PinyinSegmentScorer>(config_, *config_.segmenter);
+-    } else {
++    } else if (engine_config_.tokenizer.use_segmenter) {
+         diagnostics_.push_back(
+             "pinyin segmenter is unavailable; auto segmentation uses checked FMM");
+     }

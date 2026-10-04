@@ -1,0 +1,18 @@
+[Addon]
+Name=Phono
+Name[zh_CN]=Phono 输入法
+Name[zh_TW]=Phono 輸入法
+Name[zh_HK]=Phono 輸入法
+Category=InputMethod
+Version=@PROJECT_VERSION@
+Library=libphono
+Type=SharedLibrary
+OnDemand=True
+Configurable=True
+
+[Addon/Dependencies]
+0=core:5.1.7
+
+[Addon/OptionalDependencies]
+0=punctuation
+1=fullwidth

@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# CI packs the already built and verified DESTDIR; no duplicate source build.
+pkgname=fcitx5-phono
+pkgver=@PROJECT_VERSION@
+pkgrel=1
+pkgdesc='Phono Pinyin and Shuangpin input methods for Fcitx5'
+arch=('x86_64')
+url='https://github.com/phono-project'
+license=('Apache-2.0' 'BSD-3-Clause' 'BSD-2-Clause' 'MIT')
+depends=('fcitx5>=5.1.7' 'libime>=1.1.5' 'fcitx5-chinese-addons' 'gcc-libs' 'glibc')
+options=('!debug')
+
+package() {
+    cp -a "${PHONO_PACKAGE_ROOT:?CI must provide its verified package root}/." "$pkgdir/"
+}

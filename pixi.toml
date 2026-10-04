@@ -1,0 +1,22 @@
+[workspace]
+name = "phono-fcitx5-addon"
+version = "0.1.0"
+description = "In-process asynchronous phono-core input method for Fcitx5"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+requires-pixi = ">=0.81.0"
+
+[dependencies]
+python = ">=3.13,<3.14"
+cmake = ">=3.22,<5"
+ninja = ">=1.12,<2"
+pkg-config = ">=0.29,<1"
+libboost-headers = ">=1.85,<2"
+nlohmann_json = ">=3.11,<4"
+gettext = ">=0.22,<1"
+
+# Use the host compiler so the addon matches the native Fcitx/libime ABI.
+[tasks]
+config = "python tools/configure.py"
+build = { cmd = "cmake --build build/pixi", depends-on = ["config"] }
+test = { cmd = "ctest --test-dir build/pixi --output-on-failure", depends-on = ["build"] }

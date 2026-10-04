@@ -1,0 +1,29 @@
+# Managed environments and native SDKs
+/.pixi/
+/ci/.pixi/
+/.sdk/
+
+# Build, staging and downloadable binaries
+/build*/
+/stage/
+/dist/
+/compile_commands.json
+/CMakeCache.txt
+/CMakeFiles/
+/Testing/
+/cmake_install.cmake
+/CTestTestfile.cmake
+/CPackConfig.cmake
+/CPackSourceConfig.cmake
+/Makefile
+/build.ninja
+/.ninja_*
+*.o
+*.a
+*.so
+*.so.*
+*.mo
+
+# Python caches
+__pycache__/
+*.py[cod]
