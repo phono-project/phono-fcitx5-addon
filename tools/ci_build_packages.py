@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -23,11 +25,38 @@ TARGETS = {
 
 
 def run(args: list[str | Path], **kwargs) -> subprocess.CompletedProcess:
-    return subprocess.run([str(value) for value in args], check=True, text=True, **kwargs)
+    kwargs.setdefault("text", True)
+    return subprocess.run([str(value) for value in args], check=True, **kwargs)
 
 
 def version_tuple(value: str) -> tuple[int, ...]:
     return tuple(int(part) for part in value.split("."))
+
+
+def verify_package_permissions(package: Path) -> None:
+    if package.suffix == ".rpm":
+        listing = run(["rpm", "-qp", "--queryformat",
+                       "[%{FILENAMES}\\t%{FILEMODES:octal}\\n]", package], capture_output=True).stdout
+        directories = []
+        for line in listing.splitlines():
+            name, mode = line.split("\t")
+            if stat.S_ISDIR(int(mode, 8)):
+                directories.append((name, stat.S_IMODE(int(mode, 8))))
+    else:
+        if package.suffix == ".deb":
+            payload = run(["dpkg-deb", "--fsys-tarfile", package], capture_output=True, text=False).stdout
+        else:
+            # bsdtar converts Arch's zstd-compressed package to a plain tar stream.
+            payload = run(["bsdtar", "-cf", "-", "--format=pax", "@" + str(package)],
+                          capture_output=True, text=False).stdout
+        with tarfile.open(fileobj=io.BytesIO(payload), mode="r:") as archive:
+            directories = [(entry.name, entry.mode) for entry in archive if entry.isdir()]
+    if not directories:
+        raise ValueError(f"No directory metadata found in {package.name}")
+    for name, mode in directories:
+        if mode != 0o755:
+            raise ValueError(f"Directory permissions must be 0755 in {package.name}: {name} ({mode:04o})")
+    print(f"Validated directory permissions in {package.name}")
 
 
 def main() -> None:
@@ -137,18 +166,17 @@ def main() -> None:
          "--bundled-core", "--require-shuangpin"])
     # Also install the real native package, so malformed package dependencies
     # or an incorrect native file manifest cannot hide behind a passing TGZ.
+    extension = {"DEB": ".deb", "RPM": ".rpm", None: ".pkg.tar.zst"}[TARGETS[args.target]]
+    native = output / f"{package_name}{extension}"
+    verify_package_permissions(native)
     if args.target in ("debian13", "ubuntu2404"):
-        native = output / f"{package_name}.deb"
         run(["apt-get", "install", "--reinstall", "-y", native])
     elif args.target == "fedora43":
-        native = output / f"{package_name}.rpm"
         action = "reinstall" if subprocess.run(["rpm", "-q", "fcitx5-phono"], capture_output=True).returncode == 0 else "install"
         run(["dnf", action, "-y", "--nogpgcheck", "--setopt=install_weak_deps=False", native])
     elif args.target == "opensuse-tumbleweed":
-        native = output / f"{package_name}.rpm"
         run(["zypper", "--non-interactive", "install", "--force", "--no-recommends", "--allow-unsigned-rpm", native])
     else:
-        native = output / f"{package_name}.pkg.tar.zst"
         run(["pacman", "-U", "--noconfirm", native])
     installed_env = loader_env.copy()
     installed_env["XDG_CONFIG_HOME"] = str(build / "native-loader/config")

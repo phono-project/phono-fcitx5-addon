@@ -48,7 +48,7 @@ gh run download <run-id> --name "phono-fcitx5-addon-x86_64-<version>-ubuntu2404"
 
 The workflow first builds the shared core with the locked Pixi GCC 13.3 toolchain and glibc 2.28 sysroot, disables dtype-selective operator builds, and exports only the Phono C ABI. Core source and dependency revisions are pinned in `ci/core-source.json` and `ci/core-dependencies.json`, respectively.
 
-Each target container then builds the addon independently against its distribution’s native Fcitx5/libime SDK. CI runs CTest, checks installation layout and translations, verifies ELF version requirements, installs the actual native package, and checks dynamic loading through the Fcitx5 loader. The core is installed in a `phono/` subdirectory beside the addon and located through `$ORIGIN/phono`. Release artifacts must not contain development environment RPATHs.
+Each target container then builds the addon independently against its distribution’s native Fcitx5/libime SDK. CI runs CTest, checks installation layout and translations, verifies `0755` directory permissions in the installed tree and native packages, verifies ELF version requirements, installs the actual native package, and checks dynamic loading through the Fcitx5 loader. The core is installed in a `phono/` subdirectory beside the addon and located through `$ORIGIN/phono`. Release artifacts must not contain development environment RPATHs.
 
 | Binary checked | Maximum required glibc version |
 | --- | --- |

@@ -8,6 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(CTest)
 include(GNUInstallDirs)
+# Shared filesystem directories must be 0755 even with a permissive umask.
+set(CMAKE_INSTALL_DEFAULT_DIRECTORY_PERMISSIONS
+    OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 find_package(Threads REQUIRED)
 find_package(Fcitx5Core 5.1.7 REQUIRED)
 find_package(LibIMEPinyin 1.1.5 REQUIRED)
@@ -60,6 +64,9 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/data/addon/phono.conf" DESTINATION "$
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/data/inputmethod/phono.conf"
     "${CMAKE_CURRENT_BINARY_DIR}/data/inputmethod/phono-shuangpin.conf" DESTINATION "${PHONO_FCITX_DATA_DIR}/inputmethod")
 if(BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    add_test(NAME package_tests COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/package_tests.py")
     add_executable(worker_tests tests/worker_tests.cpp)
     target_link_libraries(worker_tests PRIVATE phono_runtime)
     add_test(NAME worker_tests COMMAND worker_tests)
@@ -93,7 +100,7 @@ if(BUILD_TESTING)
         "XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/load-env/config;XDG_DATA_HOME=${CMAKE_CURRENT_BINARY_DIR}/load-env/data;FCITX_DATA_DIRS=${CMAKE_CURRENT_BINARY_DIR}/data:/usr/share/fcitx5;FCITX_ADDON_DIRS=${CMAKE_CURRENT_BINARY_DIR}")
     set_tests_properties(feature_tests PROPERTIES ENVIRONMENT
         "XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/feature-env/config;XDG_DATA_HOME=${CMAKE_CURRENT_BINARY_DIR}/feature-env/data;FCITX_DATA_DIRS=${CMAKE_CURRENT_BINARY_DIR}/data:${FCITX_INSTALL_PKGDATADIR};FCITX_ADDON_DIRS=${CMAKE_CURRENT_BINARY_DIR}:${FCITX_INSTALL_ADDONDIR}")
-    set_tests_properties(worker_tests addon_tests load_tests shuangpin_tests presentation_tests feature_tests PROPERTIES TIMEOUT 30)
+    set_tests_properties(package_tests worker_tests addon_tests load_tests shuangpin_tests presentation_tests feature_tests PROPERTIES TIMEOUT 30)
 endif()
 include(cmake/Packaging.cmake)
 

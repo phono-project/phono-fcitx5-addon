@@ -7,12 +7,21 @@ import argparse
 import configparser
 from pathlib import Path
 import re
+import stat
 import subprocess
 
 
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def verify_directory_permissions(root: Path) -> None:
+    for directory in root.rglob("*"):
+        if directory.is_dir() and not directory.is_symlink():
+            mode = stat.S_IMODE(directory.stat().st_mode)
+            require(mode == 0o755,
+                    f"Directory permissions must be 0755: {directory.relative_to(root)} ({mode:04o})")
 
 
 def dynamic(path: Path) -> str:
@@ -38,6 +47,7 @@ def main() -> None:
     args = parser.parse_args()
     root = args.root.resolve()
     require(root.is_dir(), f"Package root not found: {root}")
+    verify_directory_permissions(root)
     files = sorted(p for p in root.rglob("*") if p.is_file())
     addon = [p for p in files if p.name == "libphono.so" and p.parent.name == "fcitx5"]
     require(len(addon) == 1, "Expected exactly one Fcitx5 libphono.so")

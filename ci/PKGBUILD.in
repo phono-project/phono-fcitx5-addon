@@ -12,4 +12,5 @@ options=('!debug')
 
 package() {
     cp -a "${PHONO_PACKAGE_ROOT:?CI must provide its verified package root}/." "$pkgdir/"
+    find "$pkgdir" -type d -exec chmod 755 {} +
 }

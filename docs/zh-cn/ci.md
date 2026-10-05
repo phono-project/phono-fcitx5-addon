@@ -48,7 +48,7 @@ gh run download <run-id> --name "phono-fcitx5-addon-x86_64-<version>-ubuntu2404"
 
 工作流先使用锁定的 Pixi GCC 13.3 和 glibc 2.28 sysroot 构建共享核心，关闭按精度裁剪算子，仅导出 Phono C ABI。核心源码和依赖版本分别由 `ci/core-source.json` 与 `ci/core-dependencies.json` 固定。
 
-随后，各目标容器使用发行版原生 Fcitx5/libime SDK 独立构建 addon。CI 运行 CTest、检查安装布局和翻译、验证 ELF 版本需求，并安装实际原生包，通过 Fcitx5 loader 验证动态加载。核心安装在 addon 旁的 `phono/` 子目录，由 `$ORIGIN/phono` 定位；发行产物不允许开发环境 RPATH。
+随后，各目标容器使用发行版原生 Fcitx5/libime SDK 独立构建 addon。CI 运行 CTest、检查安装布局和翻译、确认安装目录及原生包中的目录权限为 `0755`、验证 ELF 版本需求，并安装实际原生包，通过 Fcitx5 loader 验证动态加载。核心安装在 addon 旁的 `phono/` 子目录，由 `$ORIGIN/phono` 定位；发行产物不允许开发环境 RPATH。
 
 | 检查对象 | glibc 版本需求上限 |
 | --- | --- |
