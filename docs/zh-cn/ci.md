@@ -6,7 +6,7 @@
 
 ## 下载产物
 
-版本发布包位于 [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases)。PR 和手动构建的测试包位于 [Actions](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml) 对应运行的 artifacts 中。
+版本发布包位于 [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases)。PR、手动构建和 Release 发布构建的产物位于 [Actions](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml) 对应运行的 artifacts 中。
 
 | 发行版 | 目标 / artifact 后缀 | 原生包 |
 | --- | --- | --- |
@@ -32,7 +32,9 @@ sha256sum --check ubuntu2404-SHA256SUMS
 
 - PR 自动触发构建。
 - 手动运行：在 Actions 中打开 **Build downloadable Linux packages**，选择 **Run workflow**。该工作流需已存在于仓库默认分支。
-- 版本发布：推送 `v<version>` 标签，版本必须与 `CMakeLists.txt` 中的项目版本一致。全部目标构建成功后，工作流将产物上传到对应 GitHub Release。
+- 版本发布：先创建 `v<version>` 标签并发布对应 GitHub Release，版本必须与标签中 `CMakeLists.txt` 的项目版本一致。Release 的 `published` 事件触发构建，包括预发布版本；全部目标成功后，工作流将二进制包和报告上传到该 Release，同时保留 Actions artifacts。仅推送标签或保存草稿不会触发构建。
+
+Release 构建检出发布标签，手动和 PR 构建使用各自所选的 ref。所有触发方式复用同一个构建工作流。若使用其他工作流的 `GITHUB_TOKEN` 发布 Release，GitHub 不会触发后续 Release 工作流；此时应通过网页或 CLI 发布，或使用允许触发工作流的 GitHub App / PAT。参见 [GitHub 触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。
 
 使用 GitHub CLI 手动运行并下载产物：
 

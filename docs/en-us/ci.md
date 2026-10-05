@@ -6,7 +6,7 @@ The [Build downloadable Linux packages](../../.github/workflows/build-packages.y
 
 ## Downloads
 
-Release packages are available on [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases). Test packages from pull requests and manual builds are available in the artifacts of the corresponding [Actions run](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml).
+Release packages are available on [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases). Artifacts from pull requests, manual builds, and published releases are available in the artifacts of the corresponding [Actions run](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml).
 
 | Distribution | Target / artifact suffix | Native package |
 | --- | --- | --- |
@@ -32,7 +32,9 @@ Packages include a private `libphono_core.so` and license files. Download models
 
 - Pull requests trigger builds automatically.
 - To run a build manually, open **Build downloadable Linux packages** in Actions and select **Run workflow**. The workflow must already exist on the repository’s default branch.
-- To publish a release, push a `v<version>` tag matching the project version in `CMakeLists.txt`. Once all targets succeed, the workflow uploads the artifacts to the corresponding GitHub Release.
+- To publish a release, create a `v<version>` tag and publish its GitHub Release. The version must match the project version in the tagged `CMakeLists.txt`. The Release `published` event starts the build, including prereleases. Once all targets succeed, the workflow uploads binaries and reports to that Release and retains the Actions artifacts. Pushing a tag alone or saving a draft does not start a build.
+
+Release builds check out the release tag; manual and pull request builds use their selected refs. All triggers share one build workflow. Publishing a Release with another workflow’s `GITHUB_TOKEN` does not trigger a subsequent Release workflow. Publish through the web UI or CLI, or use a GitHub App / PAT that can trigger workflows. See the [GitHub trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
 Use the GitHub CLI to start a manual build and download its artifacts:
 

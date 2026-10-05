@@ -2,8 +2,8 @@ name: Build downloadable Linux packages
 
 on:
   workflow_dispatch:
-  push:
-    tags: ['v*']
+  release:
+    types: [published]
   pull_request:
 
 permissions:
@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+          ref: ${{ github.event.release.tag_name || github.ref }}
       - name: Record source time and validate release version
         id: metadata
         shell: bash
@@ -90,6 +91,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+          ref: ${{ github.event.release.tag_name || github.ref }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: phono-core-prefix
@@ -131,7 +133,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'release' && github.event.action == 'published'
     needs: packages
     runs-on: ubuntu-24.04
     permissions:
@@ -142,15 +144,10 @@ jobs:
           pattern: phono-fcitx5-addon-x86_64-*
           merge-multiple: true
           path: dist
-      - name: Publish tested binary downloads for the pushed release tag
+      - name: Upload tested binaries to the published release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" dist/* --clobber
-          else
-            gh release create "$RELEASE_TAG" dist/* \
-              --verify-tag --generate-notes
-          fi
+          gh release upload "$RELEASE_TAG" dist/* --clobber
