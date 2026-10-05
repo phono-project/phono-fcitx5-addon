@@ -6,17 +6,21 @@ Phono is a Chinese input method for Fcitx5 on Linux, with “Phono - Pinyin Inpu
 
 ## 安装 / Installation
 
-从 [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases) 下载对应发行版的 **x86-64 二进制包**。测试包位于 [Actions](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml) 成功运行的 `phono-packages-<target>` artifact 中，下载后先解压。
+从 [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases) 下载对应发行版的 **x86-64 二进制包**。测试包位于 [Actions](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml) 成功运行的 `phono-fcitx5-addon-<arch>-<version>-<platform>` artifact 中，下载后先解压。
 
-Download an **x86-64 binary package** for your distribution from [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases). Test builds are available in the `phono-packages-<target>` artifacts of successful [Actions runs](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml); extract the downloaded artifact first.
+Download an **x86-64 binary package** for your distribution from [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases). Test builds are available in the `phono-fcitx5-addon-<arch>-<version>-<platform>` artifacts of successful [Actions runs](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml); extract the downloaded artifact first.
 
 | 发行版 / Distribution | Actions artifact | 安装命令 / Install command |
 | --- | --- | --- |
-| Ubuntu 24.04 | `phono-packages-ubuntu2404` | `sudo apt install ./fcitx5-phono-*.deb` |
-| Debian 13 | `phono-packages-debian13` | `sudo apt install ./fcitx5-phono-*.deb` |
-| Fedora 43 | `phono-packages-fedora43` | `sudo dnf install ./fcitx5-phono-*.rpm` |
-| openSUSE Tumbleweed | `phono-packages-opensuse-tumbleweed` | `sudo zypper install ./fcitx5-phono-*.rpm` |
-| Arch Linux | `phono-packages-arch` | `sudo pacman -U ./fcitx5-phono-*.pkg.tar.zst` |
+| Ubuntu 24.04 | `phono-fcitx5-addon-x86_64-<version>-ubuntu2404` | `sudo apt install ./phono-fcitx5-addon-x86_64-*.deb` |
+| Debian 13 | `phono-fcitx5-addon-x86_64-<version>-debian13` | `sudo apt install ./phono-fcitx5-addon-x86_64-*.deb` |
+| Fedora 43 | `phono-fcitx5-addon-x86_64-<version>-fedora43` | `sudo dnf install ./phono-fcitx5-addon-x86_64-*.rpm` |
+| openSUSE Tumbleweed | `phono-fcitx5-addon-x86_64-<version>-opensuse-tumbleweed` | `sudo zypper install ./phono-fcitx5-addon-x86_64-*.rpm` |
+| Arch Linux | `phono-fcitx5-addon-x86_64-<version>-arch` | `sudo pacman -U ./phono-fcitx5-addon-x86_64-*.pkg.tar.zst` |
+
+包名格式为 `phono-fcitx5-addon-<arch>-<version>-<platform>.<ext>`，例如 `phono-fcitx5-addon-x86_64-0.1.0-fedora43.rpm`。Actions artifact 使用同一名称，不带扩展名；`<version>` 为实际版本号。
+
+Package filenames follow `phono-fcitx5-addon-<arch>-<version>-<platform>.<ext>`, for example `phono-fcitx5-addon-x86_64-0.1.0-fedora43.rpm`. Actions artifacts use the same name without an extension; replace `<version>` with the actual version.
 
 在解压后的目录运行对应命令。即使扩展名相同，也应选择为当前发行版构建的包。安装包包含推理库，模型需单独下载。
 

@@ -45,6 +45,9 @@ def main() -> None:
     for required in (core, header, licenses / "LICENSE"):
         if not required.is_file():
             raise ValueError(f"Core artifact contract is missing {required}")
+    project_version = re.search(r"\bVERSION\s+([0-9]+(?:\.[0-9]+)+)",
+                                (ROOT / "CMakeLists.txt").read_text()).group(1)
+    package_name = f"phono-fcitx5-addon-x86_64-{project_version}-{args.target}"
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     build = ROOT / "build" / f"ci-{args.target}"
@@ -101,8 +104,6 @@ def main() -> None:
     for generator in generators:
         run(["cpack", "--config", build / "CPackConfig.cmake", "-G", generator,
              "-B", build / "packages"])
-    project_version = re.search(r"\bVERSION\s+([0-9]+(?:\.[0-9]+)+)",
-                                (ROOT / "CMakeLists.txt").read_text()).group(1)
     if args.target == "arch":
         arch_dir = build / "arch-package"
         arch_dir.mkdir(exist_ok=True)
@@ -119,15 +120,13 @@ def main() -> None:
         else:
             run(["makepkg", "--cleanbuild", "--force", "--nosign"], cwd=arch_dir, env=arch_env)
         for package in arch_dir.glob("*.pkg.tar.zst"):
-            name = package.name.removesuffix(".pkg.tar.zst")
-            shutil.copy2(package, output / f"{name}-{args.target}.pkg.tar.zst")
+            shutil.copy2(package, output / f"{package_name}.pkg.tar.zst")
     for pattern in ("*.tar.gz", "*.deb", "*.rpm"):
         for package in (build / "packages").glob(pattern):
             suffix = ".tar.gz" if package.name.endswith(".tar.gz") else package.suffix
-            name = package.name.removesuffix(suffix)
-            shutil.copy2(package, output / f"{name}-{args.target}{suffix}")
+            shutil.copy2(package, output / f"{package_name}{suffix}")
     # Inspect the actual CPack archive after generation, not only DESTDIR.
-    archive = next(output.glob("*.tar.gz"))
+    archive = output / f"{package_name}.tar.gz"
     archive_root = build / "archive-root"
     if archive_root.exists():
         shutil.rmtree(archive_root)
@@ -139,17 +138,17 @@ def main() -> None:
     # Also install the real native package, so malformed package dependencies
     # or an incorrect native file manifest cannot hide behind a passing TGZ.
     if args.target in ("debian13", "ubuntu2404"):
-        native = next(output.glob("*.deb"))
+        native = output / f"{package_name}.deb"
         run(["apt-get", "install", "--reinstall", "-y", native])
     elif args.target == "fedora43":
-        native = next(output.glob("*.rpm"))
+        native = output / f"{package_name}.rpm"
         action = "reinstall" if subprocess.run(["rpm", "-q", "fcitx5-phono"], capture_output=True).returncode == 0 else "install"
         run(["dnf", action, "-y", "--nogpgcheck", "--setopt=install_weak_deps=False", native])
     elif args.target == "opensuse-tumbleweed":
-        native = next(output.glob("*.rpm"))
+        native = output / f"{package_name}.rpm"
         run(["zypper", "--non-interactive", "install", "--force", "--no-recommends", "--allow-unsigned-rpm", native])
     else:
-        native = next(file for file in output.glob("*.pkg.tar.zst") if "-debug-" not in file.name)
+        native = output / f"{package_name}.pkg.tar.zst"
         run(["pacman", "-U", "--noconfirm", native])
     installed_env = loader_env.copy()
     installed_env["XDG_CONFIG_HOME"] = str(build / "native-loader/config")

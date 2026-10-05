@@ -17,16 +17,20 @@ jobs:
   core:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
       - name: Record source time and validate release version
+        id: metadata
         shell: bash
         run: |
           printf 'SOURCE_DATE_EPOCH=%s\n' "$(git show -s --format=%ct HEAD)" >> "$GITHUB_ENV"
+          version=$(sed -n 's/.*project(.*VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
           if test "$GITHUB_REF_TYPE" = tag; then
-            version=$(sed -n 's/.*project(.*VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
             test "$GITHUB_REF_NAME" = "v$version"
           fi
       - uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
@@ -122,7 +126,7 @@ jobs:
             '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: phono-packages-${{ matrix.target }}
+          name: phono-fcitx5-addon-x86_64-${{ needs.core.outputs.version }}-${{ matrix.target }}
           path: dist/${{ matrix.target }}/*
           if-no-files-found: error
 
@@ -135,7 +139,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: phono-packages-*
+          pattern: phono-fcitx5-addon-x86_64-*
           merge-multiple: true
           path: dist
       - name: Publish tested binary downloads for the pushed release tag

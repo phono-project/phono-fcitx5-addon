@@ -16,7 +16,9 @@
 | openSUSE Tumbleweed | `opensuse-tumbleweed` | `.rpm` |
 | Arch Linux | `arch` | `.pkg.tar.zst` |
 
-下载 `phono-packages-<target>`。每份 artifact 包含原生安装包、二进制 `.tar.gz`、SHA-256 校验和、ELF 版本需求报告和构建来源。`phono-core-prefix` 是构建中间产物，不是输入法安装包。
+下载 `phono-fcitx5-addon-<arch>-<version>-<platform>`。每份 artifact 包含原生安装包、二进制 `.tar.gz`、SHA-256 校验和、ELF 版本需求报告和构建来源。`phono-core-prefix` 是构建中间产物，不是输入法安装包。
+
+安装包使用同一名称并附加 `.deb`、`.rpm`、`.pkg.tar.zst` 或 `.tar.gz` 扩展名；当前架构为 `x86_64`，`<version>` 为实际版本号，`<platform>` 为表中目标。
 
 解压 artifact 后，可在该目录中验证文件完整性，例如：
 
@@ -37,7 +39,7 @@ sha256sum --check ubuntu2404-SHA256SUMS
 ```sh
 gh workflow run build-packages.yml --ref <branch>
 gh run list --workflow build-packages.yml
-gh run download <run-id> --name phono-packages-ubuntu2404
+gh run download <run-id> --name "phono-fcitx5-addon-x86_64-<version>-ubuntu2404"
 ```
 
 ## 构建与兼容性

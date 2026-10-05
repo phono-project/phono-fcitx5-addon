@@ -16,7 +16,9 @@ Release packages are available on [GitHub Releases](https://github.com/phono-pro
 | openSUSE Tumbleweed | `opensuse-tumbleweed` | `.rpm` |
 | Arch Linux | `arch` | `.pkg.tar.zst` |
 
-Download `phono-packages-<target>`. Each artifact contains a native package, a binary `.tar.gz`, SHA-256 checksums, an ELF version requirements report, and build provenance. `phono-core-prefix` is an intermediate build artifact, not an input method package.
+Download `phono-fcitx5-addon-<arch>-<version>-<platform>`. Each artifact contains a native package, a binary `.tar.gz`, SHA-256 checksums, an ELF version requirements report, and build provenance. `phono-core-prefix` is an intermediate build artifact, not an input method package.
+
+Package filenames use the same name with a `.deb`, `.rpm`, `.pkg.tar.zst`, or `.tar.gz` extension. The current architecture is `x86_64`; replace `<version>` with the actual version and `<platform>` with a target from the table.
 
 After extracting the artifact, verify file integrity in that directory, for example:
 
@@ -37,7 +39,7 @@ Use the GitHub CLI to start a manual build and download its artifacts:
 ```sh
 gh workflow run build-packages.yml --ref <branch>
 gh run list --workflow build-packages.yml
-gh run download <run-id> --name phono-packages-ubuntu2404
+gh run download <run-id> --name "phono-fcitx5-addon-x86_64-<version>-ubuntu2404"
 ```
 
 ## Build process and compatibility
