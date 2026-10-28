@@ -115,15 +115,25 @@ int main() {
             CHECK(!ic.inputPanel().preedit().empty());
             config.setValueByPath("ShowPreedit", "True");
             engine->setConfig(config);
-            CHECK(ic.inputPanel().clientPreedit().toString() == ic.inputPanel().preedit().toString());
             CHECK(!ic.inputPanel().clientPreedit().empty());
+            CHECK(ic.inputPanel().preedit().empty());
             CHECK(key(FcitxKey_Left));
-            CHECK(ic.inputPanel().clientPreedit().cursor() == ic.inputPanel().preedit().cursor());
+            CHECK(ic.inputPanel().clientPreedit().cursor() < ic.inputPanel().clientPreedit().textLength());
             CHECK(key(FcitxKey_End));
             config.setValueByPath("ShowPreedit", "False");
             engine->setConfig(config);
             CHECK(ic.inputPanel().clientPreedit().empty());
             CHECK(!ic.inputPanel().preedit().empty());
+            ic.setCapabilityFlags({CapabilityFlag::CommitStringWithCursor,
+                                   CapabilityFlag::ClientUnfocusCommit});
+            config.setValueByPath("ShowPreedit", "True");
+            engine->setConfig(config);
+            CHECK(ic.inputPanel().clientPreedit().empty());
+            CHECK(!ic.inputPanel().preedit().empty());
+            ic.setCapabilityFlags({CapabilityFlag::Preedit, CapabilityFlag::CommitStringWithCursor,
+                                   CapabilityFlag::ClientUnfocusCommit});
+            config.setValueByPath("ShowPreedit", "False");
+            engine->setConfig(config);
             return true;
         });
         steps.push_back([&] {
@@ -268,6 +278,7 @@ int main() {
             config.setValueByPath("ShowPreedit", "True");
             engine->setConfig(config);
             CHECK(!ic.inputPanel().clientPreedit().empty());
+            CHECK(ic.inputPanel().preedit().empty());
             CHECK(first().text().toStringForCommit() == "你好");
             const auto before = ic.committed;
             CHECK(key(FcitxKey_period));

@@ -76,13 +76,6 @@ KeyList selectionKeys() {
             Key(FcitxKey_5), Key(FcitxKey_6), Key(FcitxKey_7), Key(FcitxKey_8),
             Key(FcitxKey_9), Key(FcitxKey_0)};
 }
-bool sameText(const Text &a, const Text &b) {
-    if (a.empty() && b.empty()) return true;
-    if (a.cursor() != b.cursor() || a.size() != b.size()) return false;
-    for (size_t i = 0; i < a.size(); ++i)
-        if (a.stringAt(i) != b.stringAt(i) || a.formatAt(i) != b.formatAt(i)) return false;
-    return true;
-}
 bool phonoEntry(const InputMethodEntry *entry) {
     return entry && (entry->uniqueName() == "phono" || entry->uniqueName() == "phono-shuangpin");
 }
@@ -272,12 +265,14 @@ void Engine::render(InputContext *ic) {
         preedit = Text(text, TextFormatFlag::Underline);
         preedit.setCursor(cursor);
     }
-    const Text clientPreedit = *config_.showPreedit ? preedit : Text{};
-    const bool preeditChanged = !sameText(panel.clientPreedit(), clientPreedit);
+    const bool clientPreedit = ic->capabilityFlags().test(CapabilityFlag::Preedit);
+    const bool showClientPreedit = clientPreedit && *config_.showPreedit;
     panel.reset();
     if (!s->pinyin.empty()) {
-        panel.setClientPreedit(clientPreedit);
-        panel.setPreedit(preedit);
+        // Draw the same preedit in exactly one place: the client field when
+        // inline preedit is enabled and supported, otherwise the input window.
+        if (showClientPreedit) panel.setClientPreedit(preedit);
+        else panel.setPreedit(preedit);
         auto list = std::make_unique<CommonCandidateList>();
         list->setPageSize(*config_.pageSize);
         list->setSelectionKey(selectionKeys());
@@ -337,9 +332,7 @@ void Engine::render(InputContext *ic) {
         if (!s->error.empty()) panel.setAuxDown(Text(s->error));
         else if (s->splitting) panel.setAuxDown(Text(_("Dictionary segmentation")));
     }
-    // Candidate-only updates must not resend the same composition to the
-    // frontend, which may respond with another surrounding-text notification.
-    if (preeditChanged) ic->updatePreedit();
+    ic->updatePreedit();
     ic->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 void Engine::update(InputContext *ic, bool infer) {

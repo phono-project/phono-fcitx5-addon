@@ -60,9 +60,9 @@ Phono settings normally live in `~/.config/fcitx5/conf/phono.conf`, with the use
 
 ## 使用 / Usage
 
-「显示预编辑框」默认关闭，不在应用输入框中显示尚未提交的文字；候选窗仍显示拼音。开启后，应用输入框中也会显示预编辑文本。
+「显示预编辑框」默认关闭，不在应用输入框中显示尚未提交的文字；候选窗仍显示拼音。开启后，支持内嵌预编辑的应用会在输入框中显示预编辑文本，拼音不再重复显示在候选窗；不支持的应用仍在候选窗中显示拼音。
 
-“Show preedit” is disabled by default, hiding uncommitted text in the application input field while keeping pinyin in the candidate window. Enable it to also show preedit text in the application.
+“Show preedit” is disabled by default, hiding uncommitted text in the application input field while keeping pinyin in the candidate window. When enabled, applications that support embedded preedit display the text in the input field instead of duplicating the pinyin in the candidate window; other applications continue to show it in the candidate window.
 
 输入拼音后，词典候选立即显示；模型生成的整句候选随后排在前面，通常为 3 个。与模型候选文本重复的词典项会去除，其余词典候选仍可选择。浏览候选期间，列表停止异步替换。
 
