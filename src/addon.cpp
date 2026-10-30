@@ -439,6 +439,7 @@ void Engine::select(InputContext *ic, uint64_t generation, bool model, size_t in
 }
 void Engine::keyEvent(const InputMethodEntry &, KeyEvent &event) {
     if (event.isRelease()) return;
+    if (event.key().isModifier()) return;
     auto *ic = event.inputContext();
     auto *s = state(ic);
     const auto normalized = event.key().normalize();
@@ -470,6 +471,7 @@ void Engine::keyEvent(const InputMethodEntry &, KeyEvent &event) {
         return;
     }
     if ((sym >= FcitxKey_a && sym <= FcitxKey_z) ||
+        (sym >= FcitxKey_A && sym <= FcitxKey_Z) ||
         (sym == FcitxKey_apostrophe && !s->pinyin.empty()) ||
         (sym == FcitxKey_semicolon && !s->pinyin.empty() && s->pinyin.useShuangpin() &&
          ime_->shuangpinProfile()->validInput().contains(';'))) {
