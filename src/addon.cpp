@@ -589,6 +589,17 @@ void Engine::reset(const InputMethodEntry &, InputContextEvent &event) {
     render(ic);
 }
 void Engine::deactivate(const InputMethodEntry &entry, InputContextEvent &event) {
+    // A deliberate mode switch commits the original spelling. Focus loss and
+    // capability changes (e.g. password fields) must never submit pending text.
+    if (event.type() == EventType::InputContextSwitchInputMethod &&
+        static_cast<InputContextSwitchInputMethodEvent &>(event).reason() !=
+            InputMethodSwitchedReason::CapabilityChanged) {
+        auto *ic = event.inputContext();
+        auto *s = state(ic);
+        if (!s->pinyin.empty())
+            commit(ic, s->pinyin.selectedSentence() +
+                s->pinyin.userInput().substr(s->pinyin.selectedLength()), false);
+    }
     reset(entry, event);
     state(event.inputContext())->localHistory.clear();
     state(event.inputContext())->clearPendingHistory();

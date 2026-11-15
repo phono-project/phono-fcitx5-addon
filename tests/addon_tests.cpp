@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <filesystem>
+#include <cstdlib>
 using namespace fcitx;
 using namespace phono_fcitx;
 class Context : public InputContext {
@@ -28,6 +30,10 @@ public:
 };
 int main() {
     try {
+        // Learning persists within a run, but must not affect the next run.
+        CHECK(std::getenv("XDG_DATA_HOME") && std::getenv("XDG_CONFIG_HOME"));
+        std::filesystem::remove(std::filesystem::path(std::getenv("XDG_DATA_HOME")) / "fcitx5/phono/learning.json");
+        std::filesystem::remove(std::filesystem::path(std::getenv("XDG_CONFIG_HOME")) / "fcitx5/conf/phono.conf");
         char name[] = "phono-test", disable[] = "--disable=all", enable[] = "--enable=keyboard";
         char *argv[] = {name, disable, enable, nullptr};
         Instance instance(3, argv);
@@ -57,6 +63,19 @@ int main() {
         auto type = [&](const std::string &text) { for (unsigned char c : text) CHECK(key(static_cast<KeySym>(c))); };
         auto reset = [&] { ResetEvent event(&ic); engine.reset(entry, event); };
         auto hasBeams = [&] { return engine.state(&ic)->beams.size() == 3; };
+        // Switching mode submits source keys, while unfocus/reset discard them.
+        type("hello");
+        auto *switchState = engine.state(&ic);
+        const auto oldGeneration = switchState->generation;
+        InputContextSwitchInputMethodEvent switched(InputMethodSwitchedReason::Trigger, "phono", &ic);
+        engine.deactivate(entry, switched);
+        CHECK(ic.committed == "hello");
+        CHECK(switchState->pinyin.empty() && switchState->generation > oldGeneration);
+        type("nihao");
+        FocusOutEvent unfocused(&ic);
+        engine.deactivate(entry, unfocused);
+        CHECK(ic.committed == "hello" && switchState->pinyin.empty());
+        ic.committed.clear();
         std::deque<std::function<bool()>> steps;
         std::shared_ptr<CandidateList> stale;
         std::vector<std::string> classic;
