@@ -44,25 +44,28 @@ def main() -> None:
     core.add_argument("--external-core", action="store_true")
     core.add_argument("--bundled-core", action="store_true")
     parser.add_argument("--require-shuangpin", action="store_true")
+    parser.add_argument("--macos", action="store_true", help="Validate a macOS plugin root (lib/share)")
     args = parser.parse_args()
     root = args.root.resolve()
     require(root.is_dir(), f"Package root not found: {root}")
     verify_directory_permissions(root)
+    prefix = root if args.macos else root / "usr"
     files = sorted(p for p in root.rglob("*") if p.is_file())
     addon = [p for p in files if p.name == "libphono.so" and p.parent.name == "fcitx5"]
     require(len(addon) == 1, "Expected exactly one Fcitx5 libphono.so")
-    require(addon[0].relative_to(root).parts[0] == "usr", "Addon must be installed under /usr")
+    require(addon[0].relative_to(root).parts[0] == ("lib" if args.macos else "usr"),
+            "Addon must use the platform installation prefix")
     for relative in (
-        "usr/share/fcitx5/addon/phono.conf",
-        "usr/share/fcitx5/phono/english.tsv",
-        "usr/share/fcitx5/phono/english.Copyright",
-        "usr/share/fcitx5/inputmethod/phono.conf",
-        "usr/share/licenses/phono-fcitx5-addon/LICENSE",
-        "usr/share/doc/phono-fcitx5-addon/README.md",
-        "usr/share/doc/phono-fcitx5-addon/docs/ci.md",
+        "share/fcitx5/addon/phono.conf",
+        "share/fcitx5/phono/english.tsv",
+        "share/fcitx5/phono/english.Copyright",
+        "share/fcitx5/inputmethod/phono.conf",
+        "share/licenses/phono-fcitx5-addon/LICENSE",
+        "share/doc/phono-fcitx5-addon/README.md",
+        "share/doc/phono-fcitx5-addon/docs/ci.md",
     ):
-        require((root / relative).is_file(), f"Missing required package file: {relative}")
-    addon_metadata = metadata(root / "usr/share/fcitx5/addon/phono.conf", "Addon")
+        require((prefix / relative).is_file(), f"Missing required package file: {relative}")
+    addon_metadata = metadata(prefix / "share/fcitx5/addon/phono.conf", "Addon")
     require(addon_metadata.get("Library") == "libphono" and
             addon_metadata.get("Type") == "SharedLibrary",
             "Addon metadata does not point to the shared libphono module")
@@ -70,30 +73,36 @@ def main() -> None:
     if args.require_shuangpin:
         methods.append(("phono-shuangpin.conf", "Phono - Shuangpin Input", "Phono - 双拼输入"))
     for filename, english, chinese in methods:
-        method_path = root / "usr/share/fcitx5/inputmethod" / filename
+        method_path = prefix / "share/fcitx5/inputmethod" / filename
         require(method_path.is_file(), f"Missing input method: {filename}")
         method = metadata(method_path, "InputMethod")
         require(method.get("Addon") == "phono", f"Wrong addon in {filename}")
         require(method.get("Name") == english and method.get("Name[zh_CN]") == chinese,
                 f"Wrong localized input-method names in {filename}")
     for language in ("zh_CN", "zh_TW", "zh_HK"):
-        catalog = root / f"usr/share/locale/{language}/LC_MESSAGES/phono-fcitx5-addon.mo"
+        catalog = prefix / f"share/locale/{language}/LC_MESSAGES/phono-fcitx5-addon.mo"
         require(catalog.is_file() and catalog.read_bytes()[:4] in
                 (b"\xde\x12\x04\x95", b"\x95\x04\x12\xde"),
                 f"Missing or invalid compiled translation catalog: {language}")
-    cores = [p for p in files if p.name.startswith("libphono_core.so")]
+    cores = [p for p in files if (p.name.startswith("libphono_core.so") or p.name == "libphono_core.dylib")]
     if args.external_core:
         require(not cores, "External-core package must not copy the core DSO")
     else:
         require(len(cores) == 1 and cores[0].parent == addon[0].parent / "phono",
                 "Bundled core must be in the addon's private phono directory")
-        require((root / "usr/share/licenses/phono-fcitx5-addon/phono-core/LICENSE").is_file(),
+        require((prefix / "share/licenses/phono-fcitx5-addon/phono-core/LICENSE").is_file(),
                 "Bundled core is missing its own license")
     for file in files:
         relative = file.relative_to(root)
         require(not any(part in {".sdk", ".pixi", "test-env", "load-env", "bins", "vocabs"}
                         for part in relative.parts), f"Development/model payload leaked: {relative}")
         require(file.suffix not in {".pte", ".a", ".pyc"}, f"Unexpected package payload: {relative}")
+    if args.macos:
+        from check_macho import verify
+        require(args.bundled_core, "macOS plugin delivery requires its private core")
+        verify(addon[0])
+        print(f"Validated {len(files)} macOS plugin files")
+        return
     addon_dynamic = dynamic(addon[0])
     require("Shared library: [libphono_core.so" in addon_dynamic,
             "Addon does not dynamically link phono-core")

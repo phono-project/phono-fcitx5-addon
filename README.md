@@ -1,8 +1,8 @@
 # Phono Fcitx5 addon
 
-Phono 是 Linux 上的 Fcitx5 中文输入法，提供「Phono - 拼音输入」和「Phono - 双拼输入」。它结合 Phono 模型的整句候选与 libime 词典候选，根据上文生成中文，并支持逐词选择。
+Phono 是 Linux 上的 Fcitx5 中文输入法，并提供实验性 macOS ARM64 分发，提供「Phono - 拼音输入」和「Phono - 双拼输入」。它结合 Phono 模型的整句候选与 libime 词典候选，根据上文生成中文，并支持逐词选择。
 
-Phono is a Chinese input method for Fcitx5 on Linux, with “Phono - Pinyin Input” and “Phono - Shuangpin Input”. It combines sentence candidates from the Phono model with libime dictionary candidates, using preceding text to generate Chinese and supporting word-by-word selection.
+Phono is a Chinese input method for Fcitx5 on Linux, with experimental macOS ARM64 distribution, with “Phono - Pinyin Input” and “Phono - Shuangpin Input”. It combines sentence candidates from the Phono model with libime dictionary candidates, using preceding text to generate Chinese and supporting word-by-word selection.
 
 ## 安装 / Installation
 
@@ -26,9 +26,13 @@ For ARM64, replace `x86_64` in the table with `aarch64`; Arch targets community 
 
 Package filenames follow `phono-fcitx5-addon-<arch>-<version>-<platform>.<ext>`, for example `phono-fcitx5-addon-x86_64-0.1.0-fedora43.rpm`. Actions artifacts use the same name without an extension; replace `<version>` with the actual version.
 
-在下载目录运行对应命令。即使扩展名相同，也应选择为当前发行版构建的包。安装包包含私有的 phono-core 运行库及许可证，模型需单独下载；Release 的下载指引和各发行版来源报告记录所用 core 版本。
+在下载目录运行对应命令。即使扩展名相同，也应选择为当前发行版构建的包。安装包包含私有的 phono-core 运行库及许可证，模型需单独下载；所用 core 版本、上游提交与 SDK 摘要固定在 [ci/core-sdk.json](ci/core-sdk.json)。
 
-Run the corresponding command in the download directory. Choose the package built for your distribution, even when another package has the same extension. Packages include a private phono-core runtime and its licenses; download the model separately. The Release download guide and distribution provenance reports identify the core version used.
+Run the corresponding command in the download directory. Choose the package built for your distribution, even when another package has the same extension. Packages include a private phono-core runtime and its licenses; download the model separately. The core version, upstream commit, and SDK digests are pinned in [ci/core-sdk.json](ci/core-sdk.json).
+
+macOS ARM64 用户请参阅[实验性 macOS 安装说明](docs/macos.md)，使用 `.tar.bz2` 插件归档。
+
+For macOS ARM64, follow the [experimental macOS installation guide](docs/macos.md) using the `.tar.bz2` plugin archive.
 
 ### 下载模型并启用 / Download a model and enable Phono
 
@@ -58,9 +62,9 @@ Run the corresponding command in the download directory. Choose the package buil
 
 Dictionary candidates remain available when the model is unconfigured, disabled, or fails to load. Save settings in Fcitx5 to apply them; you do not need to edit the model package’s `config.json`.
 
-Phono 配置通常保存在 `~/.config/fcitx5/conf/phono.conf`，用户词典和历史在 `~/.local/share/fcitx5/phono/`；设置了 `XDG_CONFIG_HOME` 或 `XDG_DATA_HOME` 时使用对应目录。模型目录由用户选择，不属于这些配置目录，也不会随安装包更新。
+Linux 上的 Phono 配置通常保存在 `~/.config/fcitx5/conf/phono.conf`，用户词典和历史在 `~/.local/share/fcitx5/phono/`；设置了 `XDG_CONFIG_HOME` 或 `XDG_DATA_HOME` 时使用对应目录。模型目录由用户选择，不属于这些配置目录，也不会随安装包更新。
 
-Phono settings normally live in `~/.config/fcitx5/conf/phono.conf`, with the user dictionary and history under `~/.local/share/fcitx5/phono/`. `XDG_CONFIG_HOME` and `XDG_DATA_HOME` override these locations. The model directory is selected by the user, is separate from these settings, and is not replaced by package updates.
+On Linux, Phono settings normally live in `~/.config/fcitx5/conf/phono.conf`, with the user dictionary and history under `~/.local/share/fcitx5/phono/`. `XDG_CONFIG_HOME` and `XDG_DATA_HOME` override these locations. The model directory is selected by the user, is separate from these settings, and is not replaced by package updates.
 
 ## 使用 / Usage
 
@@ -68,9 +72,9 @@ Phono settings normally live in `~/.config/fcitx5/conf/phono.conf`, with the use
 
 “Show preedit” is disabled by default, hiding uncommitted text in the application input field while keeping pinyin in the candidate window. When enabled, applications that support embedded preedit display the text in the input field instead of duplicating the pinyin in the candidate window; other applications continue to show it in the candidate window.
 
-输入拼音后，词典候选立即显示；模型生成的整句候选随后排在前面，通常为 3 个。与模型候选文本重复的词典项会去除，其余词典候选仍可选择。浏览候选期间，列表停止异步替换。
+输入拼音后，词典候选立即显示；模型生成的整句候选随后加入，通常为 3 个；用户词和英文的前后置设置决定模型组的位置。与模型候选文本重复的词典项会去除，其余词典候选仍可选择。浏览候选期间，列表停止异步替换。
 
-Dictionary candidates appear immediately as you type. Model sentence candidates are added at the front when ready, usually three. Dictionary entries with the same text as model candidates are omitted; the remaining dictionary candidates stay available. The list stops updating asynchronously while you browse it.
+Dictionary candidates appear immediately as you type. Model sentence candidates are added when ready, usually three; user-word and English placement settings determine the position of the model group. Dictionary entries with the same text as model candidates are omitted; the remaining dictionary candidates stay available. The list stops updating asynchronously while you browse it.
 
 选择模型候选会提交整句。选择词典候选后，可以继续逐词选择；本轮提交或清空后恢复模型候选。将拼音光标移到中间编辑时，使用词典候选。
 

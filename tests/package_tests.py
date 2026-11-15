@@ -1,6 +1,7 @@
 """Regression checks for directory modes in staging trees and native packages."""
 from pathlib import Path
 import io
+import json
 import os
 import subprocess
 import sys
@@ -13,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import ci_build_packages
 import verify_install
+import ci_build_macos
 
 
 class PackagePermissions(unittest.TestCase):
@@ -52,6 +54,21 @@ class PackagePermissions(unittest.TestCase):
                         with self.assertRaisesRegex(ValueError, "0755"):
                             ci_build_packages.verify_package_permissions(package)
 
+    def test_tgz_checks_encoded_directory_modes_before_safe_extraction(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as temporary:
+            package = Path(temporary) / 'plugin.tar.gz'
+            for mode in (0o755, 0o777):
+                with tarfile.open(package, 'w:gz') as archive:
+                    entry = tarfile.TarInfo('usr')
+                    entry.type = tarfile.DIRTYPE
+                    entry.mode = mode
+                    archive.addfile(entry)
+                if mode == 0o755:
+                    ci_build_packages.verify_package_permissions(package)
+                else:
+                    with self.assertRaisesRegex(ValueError, '0755'):
+                        ci_build_packages.verify_package_permissions(package)
+
     def test_rpm_rejects_bad_directory_modes(self):
         for mode in ("40755", "40777"):
             result = subprocess.CompletedProcess([], 0, stdout=f"/usr/lib/fcitx5\t{mode}\n/usr/lib/fcitx5/libphono.so\t100644\n")
@@ -81,6 +98,29 @@ class PackagePermissions(unittest.TestCase):
             self.assertEqual(target.stat().st_mode & 0o7777, 0o755)
             verify_install.verify_directory_permissions(target)
             self.assertEqual((target / "usr/lib/fcitx5/example").read_text(), "payload")
+
+
+class MacPluginArchive(unittest.TestCase):
+    def test_archive_preserves_plugin_layout_and_rejects_sdk_payload(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as temporary:
+            root = Path(temporary)
+            stage = root / 'stage'
+            for name in ('lib/fcitx5/libphono.so', 'lib/fcitx5/phono/libphono_core.dylib',
+                         'share/fcitx5/inputmethod/phono.conf'):
+                file = stage / name
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_text('payload')
+            archive = ci_build_macos.package_plugin(stage, root / 'dist')
+            with tarfile.open(archive) as package:
+                descriptor = json.load(package.extractfile('plugin/phono.json'))
+                self.assertEqual(descriptor['input_methods'], ['phono', 'phono-shuangpin'])
+                self.assertIn('lib/fcitx5/phono/libphono_core.dylib', descriptor['files'])
+                self.assertFalse(any(name.startswith('usr/') for name in package.getnames()))
+            model = stage / 'share/libime/sc.dict'
+            model.parent.mkdir()
+            model.touch()
+            with self.assertRaisesRegex(ValueError, 'SDK or native Chinese data'):
+                ci_build_macos.package_plugin(stage, root / 'dist')
 
 
 if __name__ == "__main__":

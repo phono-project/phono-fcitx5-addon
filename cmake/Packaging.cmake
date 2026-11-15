@@ -37,6 +37,15 @@ if(PHONO_BUNDLE_CORE)
     endforeach()
 endif()
 
+if(APPLE AND PHONO_BUNDLE_CORE)
+    set(PHONO_MACOS_LICENSE_ROOT "" CACHE PATH "Notices for the private macOS libime build")
+    if(NOT EXISTS "${PHONO_MACOS_LICENSE_ROOT}/libime/LGPL-2.1-or-later.txt")
+        message(FATAL_ERROR "The macOS package needs libime and dependency redistribution notices")
+    endif()
+    install(DIRECTORY "${PHONO_MACOS_LICENSE_ROOT}/"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}/native")
+endif()
+
 set(CPACK_PACKAGE_NAME "fcitx5-phono")
 set(CPACK_PACKAGE_VENDOR "Phono Project")
 set(CPACK_PACKAGE_CONTACT "${PHONO_PACKAGE_CONTACT}")

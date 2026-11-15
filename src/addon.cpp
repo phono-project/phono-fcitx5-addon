@@ -111,6 +111,25 @@ std::optional<std::string> applicationHistory(InputContext *ic, size_t limit) {
     if (length == utf8::INVALID_LENGTH || position > length) return {};
     return tail(std::string(text.begin(), utf8::nextNChar(text.begin(), position)), limit);
 }
+#ifdef __APPLE__
+std::filesystem::path nativeChineseData(bool languageModel) {
+    const auto type = languageModel ? StandardPathsType::Addon : StandardPathsType::PkgData;
+    const auto filename = languageModel ? "libime/zh_CN.lm" : "libime/sc.dict";
+    for (const auto &directory : StandardPaths::global().directories(type)) {
+        const auto file = directory.parent_path() / filename;
+        if (std::filesystem::is_regular_file(file)) return file;
+    }
+    throw std::runtime_error(std::string(_("Install the Chinese Addons plugin in Fcitx5 for macOS.")) + " " + filename);
+}
+#endif
+std::shared_ptr<const libime::StaticLanguageModelFile> chineseLanguageModel() {
+#ifdef __APPLE__
+    return std::make_shared<libime::StaticLanguageModelFile>(nativeChineseData(true).c_str());
+#else
+    return libime::DefaultLanguageModelResolver::instance().languageModelFileForLanguage("zh_CN");
+#endif
+}
+
 }
 
 Engine::Engine(Instance *instance, Worker::Inference inference)
@@ -118,12 +137,17 @@ Engine::Engine(Instance *instance, Worker::Inference inference)
       ime_(std::make_unique<libime::PinyinIME>(
           std::make_unique<libime::PinyinDictionary>(),
           std::make_unique<libime::UserLanguageModel>(
-              libime::DefaultLanguageModelResolver::instance().languageModelFileForLanguage("zh_CN")))),
+              chineseLanguageModel()))),
       worker_(inference ? std::move(inference) : Worker::Inference([this](const Request &r) { return core_.infer(r); })),
       factory_([this](InputContext &) { return new State(ime_.get(), ++nextContext_); }) {
     dispatcher_.attach(&instance_->eventLoop());
+#ifdef __APPLE__
+    ime_->dict()->load(libime::PinyinDictionary::SystemDict, nativeChineseData(false).string(),
+                       libime::PinyinDictFormat::Binary);
+#else
     ime_->dict()->load(libime::PinyinDictionary::SystemDict, PHONO_PINYIN_DICT,
                        libime::PinyinDictFormat::Binary);
+#endif
 #if __has_include(<fcitx-utils/standardpaths.h>)
     auto englishFile = StandardPaths::global().open(StandardPathsType::PkgData, "phono/english.tsv");
 #else

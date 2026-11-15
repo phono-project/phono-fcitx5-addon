@@ -8,9 +8,9 @@ This repository builds and delivers the Fcitx5 addon. [phono-core](https://githu
 
 ## 执行路径 / Execution paths
 
-PR 默认验证 Ubuntu 24.04 的 x86_64 与 aarch64，包括 CTest、词典回退、安装布局、ELF 需求及实际原生包加载。手动入口默认运行同一目标；将 `full_matrix` 设为 `true` 可运行完整五发行版、两架构矩阵，并在 Ubuntu 上验证固定模型的加载和真实推理，复现 Release 检查。Release 自动执行这些完整检查，缺失模型使推理检查失败。
+PR 默认验证 Ubuntu 24.04 的 x86_64 与 aarch64，包括 CTest、词典回退、安装布局、ELF 需求及实际原生包加载。手动入口默认运行同一目标；将 `full_matrix` 设为 `true` 可运行完整五发行版、两架构矩阵，并在 Ubuntu 上验证固定模型的加载和真实推理，复现 Release 检查。macOS ARM64 另由同一工作流中的 `macos-26` 原生任务构建与检查。Release 自动执行这些完整检查，缺失模型使推理检查失败。
 
-Pull requests validate Ubuntu 24.04 on x86_64 and aarch64 by default, including CTest, dictionary fallback, installation layout, ELF requirements, and actual native-package loading. Manual runs use the same target by default. Set `full_matrix` to `true` to reproduce Release checks: the full five-distribution, two-architecture matrix and fixed-model loading and real inference on Ubuntu. Releases run these complete checks automatically. Missing models fail the inference check.
+Pull requests validate Ubuntu 24.04 on x86_64 and aarch64 by default, including CTest, dictionary fallback, installation layout, ELF requirements, and actual native-package loading. Manual runs use the same target by default. Set `full_matrix` to `true` to reproduce Release checks: the full five-distribution, two-architecture matrix and fixed-model loading and real inference on Ubuntu. A native `macos-26` job in the same workflow additionally builds and checks macOS ARM64. Releases run these complete checks automatically. Missing models fail the inference check.
 
 | 发行版 / Distribution | 目标 / Target | 原生包 / Native package | addon glibc 上限 / Addon glibc limit |
 | --- | --- | --- | --- |
@@ -60,11 +60,15 @@ Download installation packages from [GitHub Releases](https://github.com/phono-p
 
 Packages place core in a private `phono/` directory beside the addon, load it through `$ORIGIN/phono`, and retain licenses. Every target validates directory permissions, translations, installed dynamic loading, and dictionary fallback. Release artifacts must contain no development-environment RPATH.
 
+macOS ARM64 交付 `phono-fcitx5-addon-arm64-<version>-macos.tar.bz2`，同样标记为实验性。它使用 Fcitx5 macOS 插件布局，归档解压后执行加载检查；细节见 [macOS 指南](macos.md)。所有发行任务只在本仓库中构建 addon，core 的代码与构建目录均不是本地依赖。
+
+macOS ARM64 delivers the experimental `phono-fcitx5-addon-arm64-<version>-macos.tar.bz2` using the Fcitx5 macOS plugin layout, with loading checks after extraction. See the [macOS guide](macos.md). Every delivery job builds the addon independently; core source and build directories are not local dependencies.
+
 ## 本地复现 / Local reproduction
 
-需要 Linux x86-64 或 ARM64、Python 3、Git 和 Docker；日常源码测试另需 README 中的 Pixi 与宿主开发包。以下命令在独立 addon 仓库根目录运行，首次运行下载固定 SDK，宿主不需安装容器内的 Fcitx5 开发包。
+以下示例使用 x86_64；ARM64 请使用 `linux/arm64` Docker 平台及 `aarch64` 包名。需要 Linux x86-64 或 ARM64、Python 3、Git 和 Docker；日常源码测试另需 README 中的 Pixi 与宿主开发包。以下命令在独立 addon 仓库根目录运行，首次运行下载固定 SDK，宿主不需安装容器内的 Fcitx5 开发包。
 
-You need Linux x86-64 or ARM64, Python 3, Git, and Docker; routine source tests also require Pixi and the host development packages listed in the README. Run these commands from an independent addon checkout. The first run downloads the pinned SDK, and the host does not need the container’s Fcitx5 development packages.
+The example below uses x86_64; on ARM64 use Docker platform `linux/arm64` and the `aarch64` package name. You need Linux x86-64 or ARM64, Python 3, Git, and Docker; routine source tests also require Pixi and the host development packages listed in the README. Run these commands from an independent addon checkout. The first run downloads the pinned SDK, and the host does not need the container’s Fcitx5 development packages.
 
 ```sh
 python3 tools/fetch_core_sdk.py

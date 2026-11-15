@@ -2,6 +2,9 @@
 
 #include <fcitx-utils/i18n.h>
 #include <filesystem>
+#ifdef __APPLE__
+#include <fcitx-utils/standardpaths.h>
+#endif
 
 #ifndef PHONO_LOCALEDIR
 #define PHONO_LOCALEDIR "/usr/share/locale"
@@ -22,7 +25,19 @@ inline void registerTranslationDirectory(const Directory &directory) {
 
 // Bind before the first description is translated: Config is a member of
 // Engine and is constructed before the Engine constructor body runs.
-inline void initializeI18n(const std::filesystem::path &directory = PHONO_LOCALEDIR) {
+inline std::filesystem::path translationDirectory() {
+    static const auto directory = []() -> std::filesystem::path {
+#ifdef __APPLE__
+        for (const auto &directory : fcitx::StandardPaths::global().directories(fcitx::StandardPathsType::PkgData)) {
+            const auto locale = directory.parent_path() / "locale";
+            if (std::filesystem::is_regular_file(locale / "zh_CN/LC_MESSAGES/phono-fcitx5-addon.mo")) return locale;
+        }
+#endif
+        return PHONO_LOCALEDIR;
+    }();
+    return directory;
+}
+inline void initializeI18n(const std::filesystem::path &directory = translationDirectory()) {
     static const bool registered = [&directory] {
         registerTranslationDirectory(directory);
         return true;

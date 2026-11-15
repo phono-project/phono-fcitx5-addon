@@ -45,13 +45,15 @@ def verify_package_permissions(package: Path) -> None:
             if stat.S_ISDIR(int(mode, 8)):
                 directories.append((name, stat.S_IMODE(int(mode, 8))))
     else:
-        if package.suffix == ".deb":
+        if package.name.endswith(".tar.gz"):
+            payload = package.read_bytes()
+        elif package.suffix == ".deb":
             payload = run(["dpkg-deb", "--fsys-tarfile", package], capture_output=True, text=False).stdout
         else:
             # bsdtar converts Arch's zstd-compressed package to a plain tar stream.
             payload = run(["bsdtar", "-cf", "-", "--format=pax", "@" + str(package)],
                           capture_output=True, text=False).stdout
-        with tarfile.open(fileobj=io.BytesIO(payload), mode="r:") as archive:
+        with tarfile.open(fileobj=io.BytesIO(payload), mode="r:*") as archive:
             directories = [(entry.name, entry.mode) for entry in archive if entry.isdir()]
     if not directories:
         raise ValueError(f"No directory metadata found in {package.name}")
@@ -177,8 +179,16 @@ def main() -> None:
     if archive_root.exists():
         shutil.rmtree(archive_root)
     archive_root.mkdir()
-    with tarfile.open(archive) as tar:
-        tar.extractall(archive_root, filter="data")
+    verify_package_permissions(archive)
+    # Python's data filter deliberately discards directory modes. Check archive
+    # metadata above, then create extracted directories with the standard mode
+    # even on builders whose ambient umask is 000.
+    previous_umask = os.umask(0o022)
+    try:
+        with tarfile.open(archive) as tar:
+            tar.extractall(archive_root, filter="data")
+    finally:
+        os.umask(previous_umask)
     run([sys.executable, ROOT / "tools/verify_install.py", archive_root,
          "--bundled-core", "--require-shuangpin"])
     # Also install the real native package, so malformed package dependencies

@@ -96,9 +96,46 @@ jobs:
             dist/${{ matrix.target }}-${{ matrix.arch }}/*.tar.gz
           if-no-files-found: error
 
+  macos:
+    needs: metadata
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.release.tag_name || github.ref }}
+      - uses: prefix-dev/setup-pixi@v0.11.2
+        with:
+          pixi-version: v0.81.0
+          locked: true
+          cache: true
+      - name: Install native CMake metadata
+        run: brew install extra-cmake-modules
+      - name: Download the fixed macOS core SDK
+        run: pixi run --locked python tools/fetch_core_sdk.py --platform macos-arm64
+      - name: Fetch the fixed release inference model
+        if: github.event_name == 'release' || inputs.full_matrix
+        run: pixi run --locked python tools/fetch_model.py --output .cache/models/release
+      - name: Build and test the experimental macOS plugin
+        env:
+          REQUIRE_MODEL: ${{ github.event_name == 'release' || inputs.full_matrix }}
+        run: |
+          args=()
+          if test "$REQUIRE_MODEL" = true; then
+            args+=(--model-dir "$GITHUB_WORKSPACE/.cache/models/release")
+          fi
+          pixi run --locked python tools/ci_build_macos.py \
+            --core-prefix "$GITHUB_WORKSPACE/.sdk/phono-core" "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: phono-fcitx5-addon-arm64-${{ needs.metadata.outputs.version }}-macos
+          path: dist/macos-arm64/*.tar.bz2
+          if-no-files-found: error
+
   upload:
     if: github.event_name == 'release'
-    needs: packages
+    needs: [packages, macos]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -114,4 +151,4 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          gh release upload "$RELEASE_TAG" dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.tar.gz --clobber
+          gh release upload "$RELEASE_TAG" dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.tar.gz dist/*.tar.bz2 --clobber

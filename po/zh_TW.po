@@ -160,3 +160,7 @@ msgstr "預設詞典"
 
 msgid "Maximum English edit distance"
 msgstr "英文最大編輯距離"
+
+#: src/addon.cpp
+msgid "Install the Chinese Addons plugin in Fcitx5 for macOS."
+msgstr "請在 macOS 的 Fcitx5 中安裝中文外掛程式。"
