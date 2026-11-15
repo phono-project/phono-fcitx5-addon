@@ -389,6 +389,11 @@ int main() {
         instance.eventLoop().exec();
         if (!failure.empty()) throw std::runtime_error(failure);
         // Native decimal parameters reject invalid text before it reaches JSON.
+        DecimalConstrain decimal{0, 1};
+        for (const auto *value : {"0", "1", "0.25", "2.5e-1"}) CHECK(decimal.check(value));
+        for (const auto *value : {"", "nan", "inf", "1e999", "-0.1", "1.1", " 0.5", "0.5 ", "+0.5", "0,5", "0.5x"})
+            CHECK(!decimal.check(value));
+        CHECK(parseDecimal("2.5e-1").value() == 0.25);
         Config native;
         CHECK(*native.preferUnigram);
         RawConfig invalid; invalid.setValueByPath("TrialRatio", "nan"); native.load(invalid, true);

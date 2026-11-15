@@ -26,7 +26,15 @@ case "${1:?target id required}" in
             fcitx5 fcitx5-chinese-addons rpm-build binutils file xz
         ;;
     arch)
-        pacman -Syu --noconfirm --needed base-devel ca-certificates git cmake ninja \
+        # Disposable CI containers may block Landlock even when the host
+        # kernel supports it. Keep package signature checks and container
+        # isolation; disable only the downloader restriction for this command.
+        pacman_sandbox=()
+        case "$(pacman --sync --help)" in
+            *--disable-sandbox-filesystem*) pacman_sandbox=(--disable-sandbox-filesystem) ;;
+            *--disable-sandbox*) pacman_sandbox=(--disable-sandbox) ;;
+        esac
+        pacman "${pacman_sandbox[@]}" -Syu --noconfirm --needed base-devel ca-certificates git cmake ninja \
             gettext python pkgconf boost fcitx5 libime nlohmann-json \
             fcitx5-chinese-addons binutils file xz
         ;;

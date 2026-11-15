@@ -142,7 +142,7 @@ Engine::Engine(Instance *instance, Worker::Inference inference)
       factory_([this](InputContext &) { return new State(ime_.get(), ++nextContext_); }) {
     dispatcher_.attach(&instance_->eventLoop());
 #ifdef __APPLE__
-    ime_->dict()->load(libime::PinyinDictionary::SystemDict, nativeChineseData(false).string(),
+    ime_->dict()->load(libime::PinyinDictionary::SystemDict, nativeChineseData(false).c_str(),
                        libime::PinyinDictFormat::Binary);
 #else
     ime_->dict()->load(libime::PinyinDictionary::SystemDict, PHONO_PINYIN_DICT,

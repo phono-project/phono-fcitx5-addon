@@ -6,7 +6,9 @@
 #include <fcitx-config/option.h>
 #include <libime/pinyin/shuangpinprofile.h>
 #include <nlohmann/json.hpp>
-#include <charconv>
+#include <locale>
+#include <optional>
+#include <sstream>
 #include <cmath>
 
 namespace phono_fcitx {
@@ -17,14 +19,23 @@ FCITX_CONFIG_ENUM_NAME_WITH_I18N(ShuangpinScheme, N_("Natural Code"), N_("Micros
     N_("Purple Light"), N_("Smart ABC"), N_("Chinese Star"), N_("Pinyin Jiajia"), N_("Xiaohe"));
 // Fcitx's config protocol provides integers and strings, but no floating type.
 // Keep decimal core parameters as validated native string options.
+// Classic-locale streams work with the system libc++ on macOS 14, where
+// floating-point from_chars is not available. Use the same parser for JSON.
+inline std::optional<double> parseDecimal(const std::string &text) {
+    if (text.empty() || text.front() == '+') return {};
+    std::istringstream stream(text);
+    stream.imbue(std::locale::classic());
+    double value = 0;
+    stream >> std::noskipws >> value;
+    if (stream.fail() || stream.peek() != std::char_traits<char>::eof() || !std::isfinite(value)) return {};
+    return value;
+}
 struct DecimalConstrain {
     double minimum = 0;
     double maximum = 1e9;
     bool check(const std::string &text) const {
-        double value = 0;
-        auto result = std::from_chars(text.data(), text.data() + text.size(), value);
-        return result.ec == std::errc() && result.ptr == text.data() + text.size() &&
-            std::isfinite(value) && value >= minimum && value <= maximum;
+        const auto value = parseDecimal(text);
+        return value && *value >= minimum && *value <= maximum;
     }
     void dumpDescription(fcitx::RawConfig &) const {}
 };
@@ -76,8 +87,8 @@ FCITX_CONFIGURATION(
 inline Settings settingsFor(const Config &config, bool shuangpin = false) {
     using nlohmann::json;
     json context = {{"schema_version", "1.0"}, {"min_accept_context", *config.minAccept},
-                    {"trial_ratio", std::stod(*config.trialRatio)}, {"decay_alpha", std::stod(*config.decayAlpha)},
-                    {"decay_lambda", std::stod(*config.decayLambda)}};
+                    {"trial_ratio", parseDecimal(*config.trialRatio).value()}, {"decay_alpha", parseDecimal(*config.decayAlpha).value()},
+                    {"decay_lambda", parseDecimal(*config.decayLambda).value()}};
     if (*config.maxContext) context["max_context_length"] = *config.maxContext;
     if (*config.maxHistory) context["max_history_length"] = *config.maxHistory;
     if (*config.maxPinyin) context["max_pinyin_length"] = *config.maxPinyin;
