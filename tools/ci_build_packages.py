@@ -50,8 +50,9 @@ def verify_package_permissions(package: Path) -> None:
         elif package.suffix == ".deb":
             payload = run(["dpkg-deb", "--fsys-tarfile", package], capture_output=True, text=False).stdout
         else:
-            # bsdtar converts Arch's zstd-compressed package to a plain tar stream.
-            payload = run(["bsdtar", "-cf", "-", "--format=pax", "@" + str(package)],
+            # Read the original tar metadata without a lossy archive-format
+            # conversion of makepkg's extended attributes.
+            payload = run(["zstd", "--decompress", "--stdout", package],
                           capture_output=True, text=False).stdout
         with tarfile.open(fileobj=io.BytesIO(payload), mode="r:*") as archive:
             directories = [(entry.name, entry.mode) for entry in archive if entry.isdir()]

@@ -36,7 +36,7 @@ case "${1:?target id required}" in
         esac
         pacman "${pacman_sandbox[@]}" -Syu --noconfirm --needed base-devel ca-certificates git cmake ninja \
             gettext python pkgconf boost fcitx5 libime nlohmann-json \
-            fcitx5-chinese-addons binutils file xz
+            fcitx5-chinese-addons binutils file xz zstd
         ;;
     *) printf 'Unsupported target: %s\n' "$1" >&2; exit 2 ;;
 esac

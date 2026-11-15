@@ -2,6 +2,7 @@
 from pathlib import Path
 import io
 import json
+import shutil
 import os
 import subprocess
 import sys
@@ -53,6 +54,26 @@ class PackagePermissions(unittest.TestCase):
                     else:
                         with self.assertRaisesRegex(ValueError, "0755"):
                             ci_build_packages.verify_package_permissions(package)
+
+    @unittest.skipUnless(shutil.which('zstd'), 'zstd is required only for Arch packaging')
+    def test_real_arch_package_metadata(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as temporary:
+            root = Path(temporary)
+            tar = root / 'payload.tar'
+            package = root / 'plugin.pkg.tar.zst'
+            for mode in (0o755, 0o777):
+                with tarfile.open(tar, 'w', format=tarfile.PAX_FORMAT) as archive:
+                    entry = tarfile.TarInfo('usr/lib/fcitx5')
+                    entry.type = tarfile.DIRTYPE
+                    entry.mode = mode
+                    entry.pax_headers = {'LIBARCHIVE.creationtime': '1234567890'}
+                    archive.addfile(entry)
+                subprocess.run(['zstd', '-q', '-f', tar, '-o', package], check=True)
+                if mode == 0o755:
+                    ci_build_packages.verify_package_permissions(package)
+                else:
+                    with self.assertRaisesRegex(ValueError, '0755'):
+                        ci_build_packages.verify_package_permissions(package)
 
     def test_tgz_checks_encoded_directory_modes_before_safe_extraction(self):
         with tempfile.TemporaryDirectory(dir=Path.cwd()) as temporary:
