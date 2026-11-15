@@ -99,6 +99,8 @@ int main() {
         RawConfig config;
         CHECK(!*Config{}.showPreedit);
         config.setValueByPath("ShowPreedit", "False");
+        // These assertions exercise Chinese punctuation, not English commits.
+        config.setValueByPath("DefaultDictionary/English/Enabled", "False");
         const char *model = std::getenv("PHONO_TEST_MODEL_DIR");
         const bool real = model && *model;
         config.setValueByPath("Enabled", real ? "True" : "False");
