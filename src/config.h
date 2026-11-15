@@ -32,6 +32,7 @@ FCITX_CONFIGURATION(
     EnglishConfig,
     fcitx::Option<bool> enabled{this, "Enabled", _("Enable English words"), true};
     fcitx::Option<int, fcitx::IntConstrain> minLength{this, "MinimumLength", _("Minimum English input length"), 4, {1, 40}};
+    fcitx::Option<int, fcitx::IntConstrain> maxDistance{this, "MaximumDistance", _("Maximum English edit distance"), 1, {0, 3}};
     fcitx::Option<bool> first{this, "BeforeModel", _("Show English words before model results"), true};
 );
 FCITX_CONFIGURATION(

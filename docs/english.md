@@ -17,7 +17,8 @@ To regenerate from the fixed source version, run `make` in that checkout, then
 The generated list is bucketed by length and sorted lexicographically.
 
 English settings are inside **Default dictionary → English dictionary**:
-enable/disable, minimum input length (default 4), and placement before/after the
+enable/disable, minimum input length (default 4), maximum Levenshtein distance
+(default 1, adjustable from 0 to 3), and placement before/after the
 whole model group. English selections commit directly without learning Chinese
 user words. Native segmentation suppresses English suggestions for the rest of
 the composition, just like model suggestions.
@@ -36,3 +37,12 @@ omitted known sources are appended in the default order.
 
 Fcitx5 controls candidate colors through its UI/theme. This addon does not add
 source labels or override colors.
+
+Matching first checks the exact spelling, then searches only length buckets
+within the configured distance. Each sorted bucket has a BK tree with exact
+metric edges; triangle-inequality bounds prune whole subtrees. Among eligible
+words the closest distance wins, then the smaller SCOWL commonness tier, then
+lexical order. One best English candidate is shown. Case is ignored for lookup;
+exact input case is retained, and corrected words retain all-caps/title case.
+This is English-only spelling matching; Chinese tokenization and Shuangpin
+continue to use fixed rules with core repair disabled.

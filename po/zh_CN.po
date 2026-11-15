@@ -157,3 +157,6 @@ msgstr "英文词典"
 
 msgid "Default dictionary"
 msgstr "默认词典"
+
+msgid "Maximum English edit distance"
+msgstr "英文最大编辑距离"

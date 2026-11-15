@@ -79,8 +79,36 @@ int main() {
         std::istringstream words("hello 35\nworld 35\nhi 35\n");
         english.load(words);
         CHECK(english.match("Hello", 4) == std::vector<std::string>{"Hello"});
+        CHECK(english.match("hell", 4) == std::vector<std::string>{"hello"});
+        CHECK(english.match("Hllo", 4) == std::vector<std::string>{"Hello"});
+        CHECK(english.match("WORLX", 4) == std::vector<std::string>{"WORLD"});
+        CHECK(english.match("healo", 4) == std::vector<std::string>{"hello"});
+        CHECK(english.match("helol", 4).empty()); // a transposition costs two edits
+        CHECK(english.match("helol", 4, 2) == std::vector<std::string>{"hello"});
+        CHECK(english.match("hell", 4, 0).empty());
         CHECK(english.match("hi", 4).empty());
         CHECK(english.match("hel'lo", 4).empty());
+        // Compare metric pruning with an independent full-matrix oracle.
+        const std::vector<std::string> vocabulary{"a", "ab", "ac", "ba", "abc", "cab", "baba", "cabb", "abcab"};
+        std::stringstream fixture;
+        for (const auto &word : vocabulary) fixture << word << " 35\n";
+        english.load(fixture);
+        auto fullDistance = [](const std::string &a, const std::string &b) {
+            std::vector<std::vector<int>> matrix(a.size() + 1, std::vector<int>(b.size() + 1));
+            for (size_t i = 0; i <= a.size(); ++i) matrix[i][0] = i;
+            for (size_t j = 0; j <= b.size(); ++j) matrix[0][j] = j;
+            for (size_t i = 1; i <= a.size(); ++i) for (size_t j = 1; j <= b.size(); ++j)
+                matrix[i][j] = std::min({matrix[i - 1][j] + 1, matrix[i][j - 1] + 1,
+                    matrix[i - 1][j - 1] + (a[i - 1] != b[j - 1])});
+            return matrix.back().back();
+        };
+        for (const auto &query : {"a", "bb", "ca", "caba", "babab", "xxxx", "abcac"})
+            for (int radius = 0; radius <= 3; ++radius) {
+                std::pair<int, std::string> best{100, ""};
+                for (const auto &word : vocabulary) best = std::min(best, std::pair{fullDistance(query, word), word});
+                const auto expected = best.first <= radius ? std::vector{best.second} : std::vector<std::string>{};
+                CHECK(english.match(query, 1, radius) == expected);
+            }
         checkPresentation("你好", {}, "你好");
         checkPresentation("你好", {{0, 1, 0, "i"}}, "i你好");
         checkPresentation("你好", {{2, 3, 1, "u"}}, "你u好");

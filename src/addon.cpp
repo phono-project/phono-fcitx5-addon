@@ -342,7 +342,7 @@ void Engine::render(InputContext *ic) {
         const auto &englishConfig = *config_.dictionary->english;
         s->english = *englishConfig.enabled && !s->splitting && !s->pinyin.selectedLength() &&
             s->pinyin.cursor() == s->pinyin.size()
-            ? english_.match(s->pinyin.userInput(), *englishConfig.minLength) : std::vector<std::string>{};
+            ? english_.match(s->pinyin.userInput(), *englishConfig.minLength, *englishConfig.maxDistance) : std::vector<std::string>{};
         for (size_t i = 0; i < s->english.size(); ++i) english.push_back({Source::English, i});
         // Unknown names are ignored; omitted sources retain their defaults.
         auto order = *config_.dictionary->sourceOrder;

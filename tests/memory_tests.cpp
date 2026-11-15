@@ -89,9 +89,20 @@ void run(int phase, int scenario = 0) {
         config.setValueByPath("Learning", "False");
         config.setValueByPath("UserWordsEnabled", enabled ? "True" : "False");
         config.setValueByPath("UserWordsFirst", firstWord ? "True" : "False");
+        const bool englishFirst = scenario & 8;
+        config.setValueByPath("DefaultDictionary/English/BeforeModel", englishFirst ? "True" : "False");
+        config.setValueByPath("DefaultDictionary/English/MaximumDistance", "0");
         engine.setConfig(config); engine.activate(mode, activated);
         type(input); waitModel();
-        CHECK(first() == ((enabled && firstWord) ? "倪好嘛" : "模型"));
+        std::vector<std::string> expected;
+        if (enabled && firstWord) expected.push_back("倪好嘛");
+        if (englishFirst) expected.push_back(input);
+        expected.insert(expected.end(), {"模型", "模型二"});
+        if (enabled && !firstWord) expected.push_back("倪好嘛");
+        if (!englishFirst) expected.push_back(input);
+        auto ordered = ic.inputPanel().candidateList();
+        for (size_t i = 0; i < expected.size(); ++i)
+            CHECK(ordered->candidate(i).text().toString() == expected[i]);
         if (enabled) {
             auto list = ic.inputPanel().candidateList();
             int index = 0;
@@ -172,12 +183,18 @@ int main() {
     try {
         const auto file = std::filesystem::path(std::getenv("XDG_DATA_HOME")) / "fcitx5/phono/learning.json";
         std::filesystem::remove(file);
-        for (int scenario = 0; scenario < 8; ++scenario) {
+        // A small isolated dictionary makes user/model/English collisions
+        // deterministic for both pinyin and shuangpin in the existing matrix.
+        const auto english = file.parent_path() / "english.tsv";
+        std::filesystem::create_directories(file.parent_path());
+        { std::ofstream out(english); out << "nihcma 35\nnihaoma 35\n"; }
+        for (int scenario = 0; scenario < 16; ++scenario) {
             run(5, scenario);
             { std::ifstream in(file); const auto data = nlohmann::json::parse(in).at("selections");
               CHECK(data.size() == ((scenario & 2) ? 0 : 1)); }
             std::filesystem::remove(file);
         }
+        std::filesystem::remove(english);
         for (int scenario = 0; scenario < 8; ++scenario) {
             run(4, scenario);
             std::filesystem::remove(file);
