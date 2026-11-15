@@ -55,6 +55,24 @@ class PackagePermissions(unittest.TestCase):
                         with self.assertRaisesRegex(ValueError, "0755"):
                             ci_build_packages.verify_package_permissions(package)
 
+    def test_arch_output_policy_overrides_native_compression_and_detects_missing_package(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as temporary:
+            root = Path(temporary).resolve()
+            defaults = root / 'native.conf'
+            defaults.write_text("PKGEXT='.pkg.tar.xz'\nPKGDEST='/elsewhere'\n")
+            config, packages = ci_build_packages.arch_package_config(root, defaults)
+            output = subprocess.check_output(['bash', '-c',
+                'source "$1"; printf "%s\\n%s\\n" "$PKGEXT" "$PKGDEST"',
+                'bash', str(config)], text=True).splitlines()
+            self.assertEqual(output, ['.pkg.tar.zst', str(packages)])
+            destination = root / 'release.pkg.tar.zst'
+            (packages / 'wrong.pkg.tar.xz').touch()
+            with self.assertRaisesRegex(ValueError, 'wrong.pkg.tar.xz'):
+                ci_build_packages.copy_arch_package(packages, destination)
+            (packages / 'correct.pkg.tar.zst').write_bytes(b'package')
+            ci_build_packages.copy_arch_package(packages, destination)
+            self.assertEqual(destination.read_bytes(), b'package')
+
     @unittest.skipUnless(shutil.which('zstd'), 'zstd is required only for Arch packaging')
     def test_real_arch_package_metadata(self):
         with tempfile.TemporaryDirectory(dir=Path.cwd()) as temporary:

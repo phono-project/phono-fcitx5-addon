@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import shlex
 import stat
 import subprocess
 import sys
@@ -28,7 +29,34 @@ TARGETS = {
 
 def run(args: list[str | Path], **kwargs) -> subprocess.CompletedProcess:
     kwargs.setdefault("text", True)
-    return subprocess.run([str(value) for value in args], check=True, **kwargs)
+    try:
+        return subprocess.run([str(value) for value in args], check=True, **kwargs)
+    except subprocess.CalledProcessError as error:
+        if error.stderr:
+            print(error.stderr.decode(errors="replace") if isinstance(error.stderr, bytes)
+                  else error.stderr, file=sys.stderr)
+        raise
+
+
+def arch_package_config(directory: Path, system_config: Path = Path('/etc/makepkg.conf')) -> tuple[Path, Path]:
+    packages = directory / 'packages'
+    if packages.exists():
+        shutil.rmtree(packages)
+    packages.mkdir()
+    config = directory / 'makepkg.conf'
+    config.write_text(f"source {shlex.quote(str(system_config))}\n"
+                      "PKGEXT='.pkg.tar.zst'\n"
+                      f"PKGDEST={shlex.quote(str(packages))}\n"
+                      "COMPRESSZST=(zstd -c -T2 -3 -)\n")
+    return config, packages
+
+
+def copy_arch_package(packages: Path, destination: Path) -> None:
+    found = list(packages.glob('*.pkg.tar.zst'))
+    if len(found) != 1:
+        raise ValueError(f'Expected one zstd Arch package in {packages}; found: '
+                         f'{sorted(path.name for path in packages.iterdir())}')
+    shutil.copy2(found[0], destination)
 
 
 def version_tuple(value: str) -> tuple[int, ...]:
@@ -157,6 +185,7 @@ def main() -> None:
         arch_dir = build / "arch-package"
         arch_dir.mkdir(exist_ok=True)
         shutil.copy2(build / "ci/PKGBUILD", arch_dir / "PKGBUILD")
+        arch_config, arch_packages = arch_package_config(arch_dir)
         arch_env = os.environ.copy()
         arch_env["PHONO_PACKAGE_ROOT"] = str(package_root)
         if os.geteuid() == 0:
@@ -164,12 +193,11 @@ def main() -> None:
             if subprocess.run(["id", "phono-builder"], capture_output=True).returncode:
                 run(["useradd", "--create-home", "phono-builder"])
             run(["chown", "-R", "phono-builder:phono-builder", arch_dir])
-            run(["runuser", "-u", "phono-builder", "--", "makepkg", "--cleanbuild", "--force", "--nosign"],
+            run(["runuser", "-u", "phono-builder", "--", "makepkg", "--config", arch_config, "--cleanbuild", "--force", "--nosign"],
                 cwd=arch_dir, env=arch_env)
         else:
-            run(["makepkg", "--cleanbuild", "--force", "--nosign"], cwd=arch_dir, env=arch_env)
-        for package in arch_dir.glob("*.pkg.tar.zst"):
-            shutil.copy2(package, output / f"{package_name}.pkg.tar.zst")
+            run(["makepkg", "--config", arch_config, "--cleanbuild", "--force", "--nosign"], cwd=arch_dir, env=arch_env)
+        copy_arch_package(arch_packages, output / f"{package_name}.pkg.tar.zst")
     for pattern in ("*.tar.gz", "*.deb", "*.rpm"):
         for package in (build / "packages").glob(pattern):
             suffix = ".tar.gz" if package.name.endswith(".tar.gz") else package.suffix
