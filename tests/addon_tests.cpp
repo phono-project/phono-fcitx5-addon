@@ -83,6 +83,41 @@ int main() {
         size_t before = 0;
         size_t typedPreeditUpdates = 0;
         std::string unigramCommit;
+        steps.push_back([&] { type("hello"); return true; });
+        steps.push_back([&] {
+            if (!hasBeams()) return false;
+            auto list = ic.inputPanel().candidateList();
+            CHECK(list->candidate(0).text().toString() == "hello");
+            CHECK(list->candidate(1).text().toString() == "模型甲");
+            config.setValueByPath("DefaultDictionary/English/BeforeModel", "False");
+            engine.setConfig(config);
+            InputContextEvent activated(&ic, EventType::InputContextFocusIn);
+            engine.activate(entry, activated);
+            return true;
+        });
+        steps.push_back([&] {
+            if (!hasBeams()) return false;
+            auto list = ic.inputPanel().candidateList();
+            CHECK(list->candidate(0).text().toString() == "模型甲");
+            CHECK(list->candidate(3).text().toString() == "hello");
+            const auto previous = ic.committed;
+            CHECK(key(FcitxKey_4));
+            CHECK(ic.committed == previous + "hello" && engine.state(&ic)->pinyin.empty());
+            // A saved candidate from the previous generation cannot commit twice.
+            list->candidate(3).select(&ic);
+            CHECK(ic.committed == previous + "hello");
+            reset();
+            config.setValueByPath("DefaultDictionary/English/MinimumLength", "6");
+            engine.setConfig(config);
+            type("hello");
+            CHECK(engine.state(&ic)->english.empty());
+            reset();
+            config.setValueByPath("DefaultDictionary/English/MinimumLength", "4");
+            config.setValueByPath("DefaultDictionary/English/BeforeModel", "True");
+            engine.setConfig(config);
+            ic.committed.clear();
+            return true;
+        });
         steps.push_back([&] {
             ic.surroundingText().setText("", 0, 0);
             type("ma");

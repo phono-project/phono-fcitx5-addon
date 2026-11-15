@@ -1,4 +1,7 @@
 #include "presentation.h"
+#include "candidate_groups.h"
+#include "english.h"
+#include <sstream>
 #include "check.h"
 
 #include <nlohmann/json.hpp>
@@ -55,6 +58,29 @@ void checkRange(const InvalidInput &value, size_t begin, size_t end,
 
 int main() {
     try {
+        // All four insertion combinations retain source registration order.
+        for (bool userFirst : {false, true}) for (bool englishFirst : {false, true}) {
+            CandidateGroups<std::string> groups;
+            groups.append(userFirst, {"user"});
+            groups.append(englishFirst, {"english"});
+            groups.model = {"model1", "model2", "model3"};
+            std::vector<std::string> actual = groups.before;
+            actual.insert(actual.end(), groups.model.begin(), groups.model.end());
+            actual.insert(actual.end(), groups.after.begin(), groups.after.end());
+            std::vector<std::string> expected;
+            if (userFirst) expected.push_back("user");
+            if (englishFirst) expected.push_back("english");
+            expected.insert(expected.end(), {"model1", "model2", "model3"});
+            if (!userFirst) expected.push_back("user");
+            if (!englishFirst) expected.push_back("english");
+            CHECK(actual == expected);
+        }
+        EnglishDictionary english;
+        std::istringstream words("hello 35\nworld 35\nhi 35\n");
+        english.load(words);
+        CHECK(english.match("Hello", 4) == std::vector<std::string>{"Hello"});
+        CHECK(english.match("hi", 4).empty());
+        CHECK(english.match("hel'lo", 4).empty());
         checkPresentation("你好", {}, "你好");
         checkPresentation("你好", {{0, 1, 0, "i"}}, "i你好");
         checkPresentation("你好", {{2, 3, 1, "u"}}, "你u好");

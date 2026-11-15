@@ -141,3 +141,19 @@ msgstr "拼音加加"
 
 msgid "Xiaohe"
 msgstr "小鶴"
+
+
+msgid "Enable English words"
+msgstr "啟用英文詞彙"
+
+msgid "Minimum English input length"
+msgstr "英文輸入最小長度"
+
+msgid "Show English words before model results"
+msgstr "英文詞彙放在模型結果前"
+
+msgid "English dictionary"
+msgstr "英文詞典"
+
+msgid "Default dictionary"
+msgstr "預設詞典"

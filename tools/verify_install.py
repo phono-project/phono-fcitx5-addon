@@ -54,6 +54,8 @@ def main() -> None:
     require(addon[0].relative_to(root).parts[0] == "usr", "Addon must be installed under /usr")
     for relative in (
         "usr/share/fcitx5/addon/phono.conf",
+        "usr/share/fcitx5/phono/english.tsv",
+        "usr/share/fcitx5/phono/english.Copyright",
         "usr/share/fcitx5/inputmethod/phono.conf",
         "usr/share/licenses/phono-fcitx5-addon/LICENSE",
         "usr/share/doc/phono-fcitx5-addon/README.md",

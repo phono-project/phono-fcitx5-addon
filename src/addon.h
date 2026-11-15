@@ -1,5 +1,6 @@
 #pragma once
 #include "config.h"
+#include "english.h"
 #include <fcitx/inputmethodengine.h>
 #include <fcitx/inputcontextproperty.h>
 #include <fcitx/instance.h>
@@ -38,6 +39,7 @@ struct State : fcitx::InputContextProperty {
         cancelled.reset();
         ++generation;
         beams.clear();
+        english.clear();
         unigramIndices.clear();
         invalid.clear();
         error.clear();
@@ -49,6 +51,7 @@ struct State : fcitx::InputContextProperty {
     bool splitting = false;
     Cancellation cancelled;
     std::vector<std::string> beams;
+    std::vector<std::string> english;
     std::vector<size_t> unigramIndices;
     std::vector<InvalidInput> invalid;
     std::string error;
@@ -80,6 +83,7 @@ public:
     void reloadConfig() override;
     void save() override;
     void select(fcitx::InputContext *, uint64_t generation, bool model, size_t index);
+    void selectEnglish(fcitx::InputContext *, uint64_t generation, size_t index);
     bool forget(fcitx::InputContext *, uint64_t generation, size_t index);
     State *state(fcitx::InputContext *ic);
 private:
@@ -98,6 +102,7 @@ private:
     std::map<std::string, uint32_t> learned_;
     fcitx::Instance *instance_;
     Config config_;
+    EnglishDictionary english_;
     uint64_t nextContext_ = 0;
     std::unique_ptr<libime::PinyinIME> ime_;
     Core core_;

@@ -29,7 +29,19 @@ struct DecimalConstrain {
     void dumpDescription(fcitx::RawConfig &) const {}
 };
 FCITX_CONFIGURATION(
+    EnglishConfig,
+    fcitx::Option<bool> enabled{this, "Enabled", _("Enable English words"), true};
+    fcitx::Option<int, fcitx::IntConstrain> minLength{this, "MinimumLength", _("Minimum English input length"), 4, {1, 40}};
+    fcitx::Option<bool> first{this, "BeforeModel", _("Show English words before model results"), true};
+);
+FCITX_CONFIGURATION(
+    DictionaryConfig,
+    fcitx::Option<EnglishConfig> english{this, "English", _("English dictionary"), {}};
+    fcitx::HiddenOption<std::vector<std::string>> sourceOrder{this, "SourceOrder", "", {"user", "english"}};
+);
+FCITX_CONFIGURATION(
     Config,
+    fcitx::Option<DictionaryConfig> dictionary{this, "DefaultDictionary", _("Default dictionary"), {}};
     fcitx::Option<bool> enabled{this, "Enabled", _("Enable Phono model"), true};
     fcitx::Option<bool> showPreedit{this, "ShowPreedit", _("Show preedit"), false};
     fcitx::Option<bool> preferUnigram{this, "PreferUnigramSingleSyllable", _("Use unigram probabilities for a single syllable without context"), true};

@@ -1,5 +1,6 @@
 #include "addon.h"
 #include "presentation.h"
+#include "candidate_groups.h"
 #include "shuangpin.h"
 #include "punctuation_api.h"
 #include "fdstream.h"
@@ -65,6 +66,16 @@ private:
     bool model_;
     size_t index_;
 };
+class EnglishWord : public CandidateWord {
+public:
+    EnglishWord(Engine *engine, uint64_t generation, size_t index, Text text)
+        : CandidateWord(std::move(text)), engine_(engine), generation_(generation), index_(index) {}
+    void select(InputContext *ic) const override { engine_->selectEnglish(ic, generation_, index_); }
+private:
+    Engine *engine_;
+    uint64_t generation_;
+    size_t index_;
+};
 std::string tail(const std::string &text, size_t limit) {
     const auto length = utf8::lengthValidated(text);
     if (length == utf8::INVALID_LENGTH) return {};
@@ -113,6 +124,16 @@ Engine::Engine(Instance *instance, Worker::Inference inference)
     dispatcher_.attach(&instance_->eventLoop());
     ime_->dict()->load(libime::PinyinDictionary::SystemDict, PHONO_PINYIN_DICT,
                        libime::PinyinDictFormat::Binary);
+#if __has_include(<fcitx-utils/standardpaths.h>)
+    auto englishFile = StandardPaths::global().open(StandardPathsType::PkgData, "phono/english.tsv");
+#else
+    auto englishFile = StandardPath::global().open(StandardPath::Type::PkgData, "phono/english.tsv", O_RDONLY);
+#endif
+    if (englishFile.isValid()) {
+        InputFDStreamBuf buffer(englishFile.fd());
+        std::istream stream(&buffer);
+        english_.load(stream);
+    }
     ime_->setNBest(3);
     ime_->setScoreFilter(1);
     ime_->setPreeditMode(libime::PinyinPreeditMode::RawText);
@@ -309,17 +330,43 @@ void Engine::render(InputContext *ic) {
             if (*config_.userWordsEnabled && count && (complete || utf8::length(classic[i].toString()) != 1)) personal.emplace_back(count, i);
         }
         std::stable_sort(personal.begin(), personal.end(), [](const auto &a, const auto &b) { return a.first > b.first; });
-        for (const auto &[count, index] : personal)
-            if (*config_.userWordsFirst && (!*config_.userWordsExactOnly || exact(index)) && seen.insert(classic[index].toString()).second)
-                list->append<Word>(this, s->generation, false, index, Text(classic[index].toString()));
-        for (size_t i = 0; i < s->beams.size(); ++i) {
-            const auto presentation = presentCandidate(s->beams[i], s->invalid, *config_.invalidInput);
-            if (seen.insert(presentation.committed).second)
-                list->append<Word>(this, s->generation, true, i, candidateText(presentation));
+        enum class Source { Native, Model, English };
+        struct Choice { Source source; size_t index; };
+        CandidateGroups<Choice> groups;
+        std::vector<Choice> userBefore, userAfter, english;
+        for (const auto &[count, index] : personal) {
+            auto &side = *config_.userWordsFirst && (!*config_.userWordsExactOnly || exact(index))
+                ? userBefore : userAfter;
+            side.push_back({Source::Native, index});
         }
-        for (const auto &[count, index] : personal)
-            if (seen.insert(classic[index].toString()).second)
-                list->append<Word>(this, s->generation, false, index, Text(classic[index].toString()));
+        const auto &englishConfig = *config_.dictionary->english;
+        s->english = *englishConfig.enabled && !s->splitting && !s->pinyin.selectedLength() &&
+            s->pinyin.cursor() == s->pinyin.size()
+            ? english_.match(s->pinyin.userInput(), *englishConfig.minLength) : std::vector<std::string>{};
+        for (size_t i = 0; i < s->english.size(); ++i) english.push_back({Source::English, i});
+        // Unknown names are ignored; omitted sources retain their defaults.
+        auto order = *config_.dictionary->sourceOrder;
+        order.insert(order.end(), {"user", "english"});
+        std::unordered_set<std::string> registered;
+        for (const auto &source : order) {
+            if (!registered.insert(source).second) continue;
+            if (source == "user") { groups.append(true, userBefore); groups.append(false, userAfter); }
+            else if (source == "english") groups.append(*englishConfig.first, english);
+        }
+        for (size_t i = 0; i < s->beams.size(); ++i) groups.model.push_back({Source::Model, i});
+        for (const auto *side : {&groups.before, &groups.model, &groups.after})
+            for (const auto &choice : *side) {
+                const auto i = choice.index;
+                if (choice.source == Source::Model) {
+                    const auto presentation = presentCandidate(s->beams[i], s->invalid, *config_.invalidInput);
+                    if (seen.insert(presentation.committed).second)
+                        list->append<Word>(this, s->generation, true, i, candidateText(presentation));
+                } else if (choice.source == Source::English) {
+                    if (seen.insert(s->english[i]).second)
+                        list->append<EnglishWord>(this, s->generation, i, Text(s->english[i]));
+                } else if (seen.insert(classic[i].toString()).second)
+                    list->append<Word>(this, s->generation, false, i, Text(classic[i].toString()));
+            }
         for (const auto i : s->unigramIndices)
             if (seen.insert(classic[i].toString()).second)
                 list->append<Word>(this, s->generation, false, i, Text(classic[i].toString()));
@@ -420,6 +467,12 @@ void Engine::commit(InputContext *ic, const std::string &text, bool learn) {
     s->splitting = false;
     ic->commitString(text);
     render(ic);
+}
+void Engine::selectEnglish(InputContext *ic, uint64_t generation, size_t index) {
+    auto *s = state(ic);
+    if (s->generation != generation || s->splitting || index >= s->english.size()) return;
+    const auto text = s->english[index];
+    commit(ic, text, false);
 }
 void Engine::select(InputContext *ic, uint64_t generation, bool model, size_t index) {
     auto *s = state(ic);
