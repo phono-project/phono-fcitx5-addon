@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(phono-fcitx5-addon VERSION 0.1.3 LANGUAGES CXX)
+project(phono-fcitx5-addon VERSION 0.1.4 LANGUAGES CXX)
 if(NOT CMAKE_SYSTEM_NAME MATCHES "^(Linux|Darwin)$")
     message(FATAL_ERROR "This addon targets Linux and experimental macOS Fcitx5")
 endif()
