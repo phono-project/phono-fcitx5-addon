@@ -15,6 +15,8 @@ import sys
 import tarfile
 
 from ci_metadata import version
+from fetch_core_sdk import native_arch
+from check_elf import inspect
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -62,6 +64,7 @@ def verify_package_permissions(package: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", choices=TARGETS, required=True)
+    parser.add_argument("--arch", choices=("x86_64", "aarch64"), default=native_arch())
     parser.add_argument("--core-prefix", type=Path, required=True)
     parser.add_argument("--max-glibc", required=True, help="Target release limit, or native for rolling targets")
     parser.add_argument("--output", type=Path, required=True)
@@ -77,6 +80,8 @@ def main() -> None:
         for name in FILES:
             if not (args.model_dir / name).is_file() or (args.model_dir / name).stat().st_size == 0:
                 raise ValueError(f"Release model is missing {name}")
+    if args.arch != native_arch():
+        raise ValueError("Build and test packages on the matching native architecture")
     prefix = args.core_prefix.resolve()
     core = prefix / "lib/libphono_core.so"
     header = prefix / "include/phono-core/phono_api.h"
@@ -85,10 +90,10 @@ def main() -> None:
         if not required.is_file():
             raise ValueError(f"Core artifact contract is missing {required}")
     project_version = version()
-    package_name = f"phono-fcitx5-addon-x86_64-{project_version}-{args.target}"
+    package_name = f"phono-fcitx5-addon-{args.arch}-{project_version}-{args.target}"
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    build = ROOT / "build" / f"ci-{args.target}"
+    build = ROOT / "build" / f"ci-{args.target}-{args.arch}"
     package_root = build / "package-root"
     if package_root.exists():
         shutil.rmtree(package_root)
@@ -102,11 +107,16 @@ def main() -> None:
         if not found:
             raise ValueError(f"No {namespace} definitions in the native C++ runtime")
         cpp_limits[namespace] = max(found, key=version_tuple)
+    inspect(core, max_glibc="2.28", max_glibcxx="3.4.32", max_cxxabi="1.3.14",
+            no_rpath=True, c_api_only=True)
+    inspect(core, max_glibc=max_glibc, max_glibcxx=cpp_limits["GLIBCXX"],
+            max_cxxabi=cpp_limits["CXXABI"])
     run(["cmake", "-S", ROOT, "-B", build, "-G", "Ninja",
          "-DCMAKE_TOOLCHAIN_FILE=", "-DCMAKE_BUILD_TYPE=Release",
          "-DCMAKE_INSTALL_PREFIX=/usr", "-DPHONO_BUNDLE_CORE=ON",
          f"-DPHONO_SDK_PREFIX={prefix}",
-         f"-DPHONO_CORE_LICENSE_ROOT={licenses}", "-DBUILD_TESTING=ON"])
+         f"-DPHONO_CORE_LICENSE_ROOT={licenses}",
+         f"-DPHONO_CORE_DEPENDENCY_LICENSE_ROOT={licenses.parent}", "-DBUILD_TESTING=ON"])
     run(["cmake", "--build", build, "--parallel", str(args.jobs)])
     test_env = os.environ.copy()
     test_env.pop("PHONO_TEST_MODEL_DIR", None)

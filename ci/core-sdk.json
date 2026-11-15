@@ -1,5 +1,19 @@
 {
   "repository": "phono-project/phono-core",
-  "version": "0.1.2",
-  "asset": "phono-core-sdk-0.1.2-linux-x86_64.tar.gz"
+  "version": "0.1.3",
+  "source_commit": "7af52ad44f34b9c62ca9e3a92260b2b87bf308c5",
+  "assets": {
+    "linux-arm64": {
+      "name": "phono-core-sdk-0.1.3-linux-arm64.tar.gz",
+      "sha256": "87d18e7d8678838682c622b0ec24618cda021f25e2bfffbb6c45819440245fbd"
+    },
+    "linux-x86_64": {
+      "name": "phono-core-sdk-0.1.3-linux-x86_64.tar.gz",
+      "sha256": "f8cd18345699745a5267a1060da78c9863063522ce0c02365e3b162b94f207fa"
+    },
+    "macos-arm64": {
+      "name": "phono-core-sdk-0.1.3-macos-arm64.tar.gz",
+      "sha256": "f0435d4ab6c341e2410bf7d9cccc40ac3835c68effd6b3b511c98e61477ee688"
+    }
+  }
 }

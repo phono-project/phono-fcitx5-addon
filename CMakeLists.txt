@@ -38,6 +38,8 @@ else()
     get_filename_component(_phono_sdk_prefix "${_phono_sdk_libdir}" DIRECTORY)
     set(PHONO_CORE_LICENSE_ROOT "${_phono_sdk_prefix}/share/licenses/phono-core" CACHE PATH
         "Core SDK redistribution notices")
+    set(PHONO_CORE_DEPENDENCY_LICENSE_ROOT "${_phono_sdk_prefix}/share/licenses" CACHE PATH
+        "Core SDK dependency redistribution notices")
 endif()
 if(NOT PHONO_CORE_LIBRARY MATCHES "\\.so(\\.[0-9.]+)?$")
     message(FATAL_ERROR "This build uses shared libphono_core.so. A static integration requires a separate build path with PHONO_DTYPE_SELECTIVE_BUILD=OFF")

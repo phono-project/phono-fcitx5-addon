@@ -41,7 +41,17 @@ def main():
             raise ValueError("A release requires the repository default branch")
         subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", f"origin/{args.default_branch}"],
                        cwd=ROOT, check=True)
-    matrix = TARGETS if args.full or args.tag else [next(t for t in TARGETS if t['target'] == 'ubuntu2404')]
+    selected = TARGETS if args.full or args.tag else [next(t for t in TARGETS if t['target'] == 'ubuntu2404')]
+    matrix = []
+    for target in selected:
+        for arch, runner, docker_platform, sdk in (
+            ('x86_64', 'ubuntu-24.04', 'linux/amd64', 'linux-x86_64'),
+            ('aarch64', 'ubuntu-24.04-arm', 'linux/arm64', 'linux-arm64'),
+        ):
+            entry = {**target, 'arch': arch, 'runner': runner, 'platform': docker_platform, 'sdk': sdk}
+            if target['target'] == 'arch' and arch == 'aarch64':
+                entry['image'] = 'menci/archlinuxarm:base-devel'
+            matrix.append(entry)
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, 'a') as stream:
             stream.write(f"version={value}\nmatrix={json.dumps({'include':matrix})}\n")

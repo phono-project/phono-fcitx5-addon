@@ -6,9 +6,9 @@ Phono is a Chinese input method for Fcitx5 on Linux, with “Phono - Pinyin Inpu
 
 ## 安装 / Installation
 
-从 [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases) 下载对应发行版的 **x86-64 二进制包**。测试包位于 [Actions](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml) 成功运行的 `phono-fcitx5-addon-<arch>-<version>-<platform>` artifact 中，下载后先解压。
+从 [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases) 下载对应发行版的 **x86-64 或实验性 aarch64（ARM64）二进制包**。测试包位于 [Actions](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml) 成功运行的 `phono-fcitx5-addon-<arch>-<version>-<platform>` artifact 中，下载后先解压。
 
-Download an **x86-64 binary package** for your distribution from [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases). Test builds are available in the `phono-fcitx5-addon-<arch>-<version>-<platform>` artifacts of successful [Actions runs](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml); extract the downloaded artifact first.
+Download an **x86-64 or experimental aarch64 (ARM64) binary package** for your distribution from [GitHub Releases](https://github.com/phono-project/phono-fcitx5-addon/releases). Test builds are available in the `phono-fcitx5-addon-<arch>-<version>-<platform>` artifacts of successful [Actions runs](https://github.com/phono-project/phono-fcitx5-addon/actions/workflows/build-packages.yml); extract the downloaded artifact first.
 
 | 发行版 / Distribution | Actions artifact | 安装命令 / Install command |
 | --- | --- | --- |
@@ -17,6 +17,10 @@ Download an **x86-64 binary package** for your distribution from [GitHub Release
 | Fedora 43 | `phono-fcitx5-addon-x86_64-<version>-fedora43` | `sudo dnf install ./phono-fcitx5-addon-x86_64-*.rpm` |
 | openSUSE Tumbleweed | `phono-fcitx5-addon-x86_64-<version>-opensuse-tumbleweed` | `sudo zypper install ./phono-fcitx5-addon-x86_64-*.rpm` |
 | Arch Linux | `phono-fcitx5-addon-x86_64-<version>-arch` | `sudo pacman -U ./phono-fcitx5-addon-x86_64-*.pkg.tar.zst` |
+
+ARM64 用户将表中包名的 `x86_64` 换成 `aarch64`；Arch 对应社区 Arch Linux ARM。所有 Linux ARM64 分发目前均为实验性。
+
+For ARM64, replace `x86_64` in the table with `aarch64`; Arch targets community Arch Linux ARM. All Linux ARM64 distributions are experimental.
 
 包名格式为 `phono-fcitx5-addon-<arch>-<version>-<platform>.<ext>`，例如 `phono-fcitx5-addon-x86_64-0.1.0-fedora43.rpm`。Actions artifact 使用同一名称，不带扩展名；`<version>` 为实际版本号。
 
@@ -101,6 +105,10 @@ Chinese punctuation and full-width characters use Fcitx5’s native features. Di
 
 “Enable user words” and “Show user words before model results” are enabled by default. Disable the former to stop using remembered vocabulary and ranking while retaining saved records; disable the latter to place user words after model results. “Learn from dictionary selections” independently controls new learning.
 
+中文输入中切换到英文模式，会提交已选文字及剩余原始输入。英文候选使用离线 SCOWL 词典，默认从 4 个字母开始匹配，莱文斯坦距离最多为 1；相关配置位于「默认词典」的英文子配置。默认候选来源顺序为用户词、英文、模型，随后保留未重复的原生词典候选。用户词与英文可分别放在整个模型候选组之前或之后；同侧按用户词、英文的顺序排列。详见[英文词典说明](docs/english.md)。
+
+Switching to English mode commits selected text and remaining raw input. Offline SCOWL English candidates start at four letters with a maximum Levenshtein distance of one by default; options are nested under Default dictionary. The default source order is user words, English, then model results, followed by remaining native dictionary candidates. User words and English can each appear before or after the complete model group; sources on the same side retain user-word then English order. See the [English dictionary guide](docs/english.md).
+
 ## 上文与隐私 / Context and privacy
 
 Phono 优先读取应用提供的光标前文本，以生成符合上文的候选；可在配置中关闭「使用应用提供的上文」或调整读取字符数。应用不提供有效上文时，只使用当前输入上下文中连续提交的历史。
@@ -146,9 +154,9 @@ pixi run test
 PHONO_TEST_MODEL_DIR=/absolute/path/to/model pixi run test
 ```
 
-SDK 下载到 `.sdk/phono-core`，下载程序检查 SDK 内的版本与固定版本一致。测试的配置和用户词典写入构建目录内的隔离环境，日常测试无需模型。使用其他已安装 SDK 时可执行 `PHONO_SDK_PREFIX=/absolute/path/to/sdk pixi run test`；直接调用 CMake 时使用 `-DPHONO_SDK_PREFIX=...` 或 `CMAKE_PREFIX_PATH`。
+SDK 下载到 `.sdk/phono-core`，下载程序校验 SDK 的 SHA-256、版本、构建提交、库摘要与架构。测试的配置和用户词典写入构建目录内的隔离环境，日常测试无需模型。使用其他已安装 SDK 时可执行 `PHONO_SDK_PREFIX=/absolute/path/to/sdk pixi run test`；直接调用 CMake 时使用 `-DPHONO_SDK_PREFIX=...` 或 `CMAKE_PREFIX_PATH`。
 
-The SDK is downloaded to `.sdk/phono-core`. The downloader checks that the installed SDK version matches the pinned version. Tests write settings and user dictionaries to isolated environments inside the build directory; routine tests need no model. To use another installed SDK, run `PHONO_SDK_PREFIX=/absolute/path/to/sdk pixi run test`. Direct CMake builds accept `-DPHONO_SDK_PREFIX=...` or `CMAKE_PREFIX_PATH`.
+The SDK is downloaded to `.sdk/phono-core`. The downloader verifies the SDK SHA-256, version, source commit, library digest, and architecture. Tests write settings and user dictionaries to isolated environments inside the build directory; routine tests need no model. To use another installed SDK, run `PHONO_SDK_PREFIX=/absolute/path/to/sdk pixi run test`. Direct CMake builds accept `-DPHONO_SDK_PREFIX=...` or `CMAKE_PREFIX_PATH`.
 
 显式本地覆盖仍支持 `PHONO_CORE_INCLUDE_DIR`、`PHONO_CORE_LIBRARY` 和打包所需的 `PHONO_CORE_LICENSE_ROOT`，通过 `tools/configure.py` 的 `-D` 参数传入。二进制包构建、Release 规则和安装验证见 [CI 文档](docs/ci.md)。贡献代码前请运行适合改动的测试；涉及发行版打包时，可手动运行完整矩阵。
 

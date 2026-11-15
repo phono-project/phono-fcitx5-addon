@@ -22,6 +22,11 @@ if(PHONO_BUNDLE_CORE)
     endif()
     install(DIRECTORY "${PHONO_CORE_LICENSE_ROOT}/"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}/phono-core")
+    if(PHONO_CORE_DEPENDENCY_LICENSE_ROOT)
+        install(DIRECTORY "${PHONO_CORE_DEPENDENCY_LICENSE_ROOT}/"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}/phono-core/dependencies"
+            PATTERN "phono-core" EXCLUDE)
+    endif()
     set(_phono_extra_notice_index 0)
     foreach(_phono_notice IN LISTS PHONO_CORE_EXTRA_LICENSE_FILES)
         get_filename_component(_phono_notice_name "${_phono_notice}" NAME)

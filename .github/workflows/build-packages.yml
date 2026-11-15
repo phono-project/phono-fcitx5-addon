@@ -1,11 +1,11 @@
-name: Check and deliver Linux packages
+name: Check and deliver binary packages
 
 on:
   pull_request:
   workflow_dispatch:
     inputs:
       full_matrix:
-        description: Validate all five distributions
+        description: Validate all five distributions on both architectures
         type: boolean
         default: false
   release:
@@ -46,7 +46,7 @@ jobs:
 
   packages:
     needs: metadata
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -57,7 +57,7 @@ jobs:
           persist-credentials: false
           ref: ${{ github.event.release.tag_name || github.ref }}
       - name: Download the fixed core Release SDK
-        run: python3 tools/fetch_core_sdk.py --prefix "$GITHUB_WORKSPACE/.sdk/phono-core"
+        run: python3 tools/fetch_core_sdk.py --prefix "$GITHUB_WORKSPACE/.sdk/phono-core" --platform "${{ matrix.sdk }}"
       - name: Fetch the fixed release inference model
         if: (github.event_name == 'release' || inputs.full_matrix) && matrix.target == 'ubuntu2404'
         run: python3 tools/fetch_model.py --output "$GITHUB_WORKSPACE/.cache/models/release"
@@ -65,14 +65,16 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
           IMAGE: ${{ matrix.image }}
+          ARCH: ${{ matrix.arch }}
+          PLATFORM: ${{ matrix.platform }}
           MAX_GLIBC: ${{ matrix.max_glibc }}
           REQUIRE_MODEL: ${{ (github.event_name == 'release' || inputs.full_matrix) && matrix.target == 'ubuntu2404' }}
         run: |
-          docker pull "$IMAGE"
+          docker pull --platform "$PLATFORM" "$IMAGE"
           image_id=$(docker image inspect "$IMAGE" --format '{{index .RepoDigests 0}}')
-          docker run --rm --platform linux/amd64 \
+          docker run --rm --platform "$PLATFORM" \
             -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
-            -e TARGET -e MAX_GLIBC -e REQUIRE_MODEL \
+            -e TARGET -e ARCH -e MAX_GLIBC -e REQUIRE_MODEL \
             -e "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" \
             "$image_id" bash -euc '
               bash ci/install-native-deps.sh "$TARGET"
@@ -80,18 +82,18 @@ jobs:
               if test "$REQUIRE_MODEL" = true; then
                 args+=(--require-model --model-dir /workspace/.cache/models/release)
               fi
-              python3 tools/ci_build_packages.py --target "$TARGET" \
+              python3 tools/ci_build_packages.py --target "$TARGET" --arch "$ARCH" \
                 --core-prefix /workspace/.sdk/phono-core --max-glibc "$MAX_GLIBC" \
-                --output "/workspace/dist/$TARGET" "${args[@]}"
+                --output "/workspace/dist/$TARGET-$ARCH" "${args[@]}"
             '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: phono-fcitx5-addon-x86_64-${{ needs.metadata.outputs.version }}-${{ matrix.target }}
+          name: phono-fcitx5-addon-${{ matrix.arch }}-${{ needs.metadata.outputs.version }}-${{ matrix.target }}
           path: |
-            dist/${{ matrix.target }}/*.deb
-            dist/${{ matrix.target }}/*.rpm
-            dist/${{ matrix.target }}/*.pkg.tar.zst
-            dist/${{ matrix.target }}/*.tar.gz
+            dist/${{ matrix.target }}-${{ matrix.arch }}/*.deb
+            dist/${{ matrix.target }}-${{ matrix.arch }}/*.rpm
+            dist/${{ matrix.target }}-${{ matrix.arch }}/*.pkg.tar.zst
+            dist/${{ matrix.target }}-${{ matrix.arch }}/*.tar.gz
           if-no-files-found: error
 
   upload:
@@ -103,7 +105,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: phono-fcitx5-addon-x86_64-*
+          pattern: phono-fcitx5-addon-*
           merge-multiple: true
           path: dist
       - name: Upload tested packages
